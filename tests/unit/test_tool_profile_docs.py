@@ -22,9 +22,10 @@ def test_evaluation_scenarios_are_parseable_and_complete() -> None:
         "uart-no-output",
         "freertos-stall",
         "keil-build-flash-verify",
+        "new-user-project-memory",
     ]:
         assert f"id: {scenario_id}" in text
-    assert text.count("baseline:") == 5
+    assert text.count("baseline:") == 6
     assert "executed: false" in text
 
 
@@ -47,11 +48,17 @@ def test_documented_core_tools_match_code_allowlist() -> None:
 def test_skill_resumes_known_projects_before_first_contact() -> None:
     skill = SKILL_PATH.read_text(encoding="utf-8")
 
+    assert "Target Project Memory" in skill
+    assert "`inspect_project_memory(...)`" in skill
+    assert "never write another firmware project's memory into the McuBuddy repository" in skill
     assert "Known Project Resume" in skill
     assert "`get_runtime_config()`" in skill
     assert "Do not run `first_contact()`" in skill
     assert "`doctor()`" in skill
     assert "`first_contact()`" in skill
+    assert skill.index("`inspect_project_memory(...)`") < skill.index(
+        "`get_runtime_config()`"
+    )
     assert skill.index("`get_runtime_config()`") < skill.index("`first_contact()`")
     assert skill.index("Known Project Resume") < skill.index("Default Flow")
 

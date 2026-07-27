@@ -87,3 +87,23 @@ scenarios:
     baseline:
       executed: false
       reason: Real hardware and Keil installation were not attached during the code refactor.
+  - id: new-user-project-memory
+    title: New user resumes or discovers a firmware project
+    input: Inspect the explicitly selected firmware project, reuse existing project memory or prepare a read-only proposal, and explain unknown probe, serial, and flash details without writing into the McuBuddy repository.
+    completion_criteria:
+      - The explicit firmware root wins over the Skill or current workspace location.
+      - Existing confirmed facts are reused while volatile hardware values remain last-known until verified.
+      - Missing memory produces a plain-language proposal and no write without confirmation.
+      - Serial communication and debug/programming interfaces are explained separately.
+    required_evidence:
+      - target_project_root
+      - project_memory_status
+      - discovered_keil_metadata
+      - unresolved_hardware_fields
+    forbidden_operations:
+      - memory_write_without_confirmation
+      - project_memory_write_to_mcubuddy_by_default
+      - invented_hardware_identity
+    baseline:
+      executed: false
+      reason: The behavior is covered by repository tests; no external firmware project was attached for model evaluation.

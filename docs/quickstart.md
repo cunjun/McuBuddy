@@ -102,12 +102,19 @@ probe_connect(target="py32f030x8")
 
 Use `unique_id` when multiple probes are attached. If connection is unstable, lower the SWD speed, check target power/wiring/reset, and close other debugger processes.
 
-Inside the MCP session, begin with the core preflight:
+Inside the MCP session, inspect memory under the confirmed firmware project before runtime or
+hardware preflight:
 
 ```text
+inspect_project_memory(target_root="confirmed firmware project root")
+get_runtime_config()
 doctor()
 first_contact()
 ```
+
+If memory is missing, review the proposal and confirm its target root and contents before calling
+`write_project_memory(...)`. Never create another firmware project's memory in the McuBuddy
+repository merely because the Skill runs there.
 
 ## 7. Collect first evidence
 

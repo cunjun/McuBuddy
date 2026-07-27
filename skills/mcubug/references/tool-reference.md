@@ -14,6 +14,8 @@ Core tools:
 
 - `doctor`
 - `first_contact`
+- `inspect_project_memory`
+- `write_project_memory`
 - `list_tool_safety`
 - `list_validation_records`
 - `pack_diagnose`
@@ -57,9 +59,11 @@ Core tools:
 `list_tool_safety(include_hidden=true)` to inspect metadata for the full catalog without changing
 the MCP exposure surface.
 
-Start with `get_runtime_config()` and reuse complete settings for a known project. Use `doctor()`
-and `first_contact()` before configuring a probe only for first setup, an unknown or changed board,
-missing required configuration, connection recovery, or an explicit full preflight request.
+Start with `inspect_project_memory(target_root)` for the confirmed firmware project, then
+`get_runtime_config()`. Inspection never writes. `write_project_memory(...)` creates the canonical
+memory only with confirmation and refuses target-root escapes. Use `doctor()` and `first_contact()`
+only for first setup, changed hardware, missing configuration, connection recovery, or an explicit
+full preflight request.
 
 `pack_diagnose(target, search_roots=None)` finds and checksum-verifies a managed CMSIS-Pack.
 `pack_install(target, destination="packs", confirm=False)` downloads the exact trusted pack,
@@ -88,6 +92,8 @@ Runtime configuration and target preflight:
 - `doctor`
 - `first_contact`
 - `get_runtime_config`
+- `inspect_project_memory`
+- `write_project_memory`
 - `list_demo_profiles`
 - `load_demo_profile`
 - `configure_probe`

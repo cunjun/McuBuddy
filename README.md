@@ -443,3 +443,4 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ---
 
 If `McuBuddy` helps with your MCU debugging workflow, consider giving the project a Star.
+If you have any good ideas for `McuBuddy`, you can also send your thoughts to `zhou229449@gmail.com`. Thanks.

@@ -17,6 +17,8 @@ CORE_TOOL_NAMES = frozenset(
         "doctor",
         "first_contact",
         "get_runtime_config",
+        "inspect_project_memory",
+        "write_project_memory",
         "list_tool_safety",
         "list_validation_records",
         "pack_diagnose",

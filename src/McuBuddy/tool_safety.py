@@ -7,6 +7,7 @@ CONCURRENT_TOOLS = frozenset(
     {
         "discover_keil_projects",
         "get_target_info",
+        "inspect_project_memory",
         "list_demo_profiles",
         "list_supported_targets",
         "list_tool_safety",
@@ -34,6 +35,10 @@ SAFETY_LEVELS: dict[str, dict[str, Any]] = {
         "summary": "Changes persistent target state, especially flash erase/program or firmware flashing.",
         "requires_confirmation": True,
     },
+    "persistent": {
+        "summary": "Creates or updates a persistent host-side project artifact.",
+        "requires_confirmation": True,
+    },
     "host-process": {
         "summary": "Starts, stops, or inspects host-side helper processes.",
         "requires_confirmation": False,
@@ -54,6 +59,8 @@ TOOL_POLICIES: dict[str, dict[str, Any]] = {
     "first_contact": {"level": "execution-changing"},
     "board_smoke_test": {"level": "execution-changing"},
     "get_runtime_config": {"level": "read-only"},
+    "inspect_project_memory": {"level": "read-only"},
+    "write_project_memory": {"level": "persistent"},
     "list_connected_probes": {"level": "read-only"},
     "list_supported_targets": {"level": "read-only"},
     "match_chip_name": {"level": "read-only"},

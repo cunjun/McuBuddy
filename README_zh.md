@@ -415,3 +415,4 @@ MIT License 授权的代码基础上扩展了架构、安全边界、证据工�
 ---
 
 如果 `McuBuddy` 对你的 MCU 调试工作有帮助，欢迎给项目一个 Star。
+如果你对 `McuBuddy`有什么好的想法也可以向`zhou229449@gmail.com`发送你的见解，感谢。

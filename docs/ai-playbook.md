@@ -16,15 +16,20 @@ Use McuBuddy as an evidence collector, not as permission to guess. Keep the boar
 
 <!-- mcubuddy-profile: core -->
 ```text
+inspect_project_memory(target_root="confirmed firmware project root")
 get_runtime_config()
 probe_connect(target="target-name")
 probe_reset(halt=True)
 read_stopped_context()
 ```
 
-Reuse configured target, backend, probe identity, ELF, build, and log settings. Do not treat a new
-AI task as a new board. If required configuration is missing, the board changed, connection
-recovery is needed, or a full preflight was requested, use:
+Project memory belongs under the confirmed firmware project, never the McuBuddy repository merely
+because the Skill runs there. Reuse confirmed project facts, then verify last-known probe, serial,
+and firmware state. If memory is missing, review the read-only proposal and confirm its root and
+content before calling `write_project_memory(...)`.
+
+Do not treat a new AI task as a new board. If required configuration is missing, the board changed,
+connection recovery is needed, or a full preflight was requested, use:
 
 ```text
 doctor()

@@ -19,6 +19,9 @@ from ..tools.configuration import match_chip_name as _match_chip_name
 from ..tools.debug_loop import run_debug_loop as _run_debug_loop
 from ..tools.project import configure_keil_project as _configure_keil_project
 from ..tools.project import discover_keil_projects as _discover_keil_projects
+from ..tools.project_memory import inspect_project_memory as _inspect_project_memory
+from ..tools.project_memory import write_project_memory as _write_project_memory
+from ..security_guards import runtime_config_for
 from ..tools.smoke import board_smoke_test as _board_smoke_test
 from ..tools.smoke import doctor as _doctor
 from ..tools.smoke import first_contact as _first_contact
@@ -28,6 +31,37 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
     @mcp.tool()
     async def get_runtime_config() -> dict:
         return _get_runtime_config(session)
+
+    @mcp.tool()
+    async def inspect_project_memory(
+        target_root: str,
+        current_root: str | None = None,
+        max_depth: int = 6,
+    ) -> dict:
+        """Read target-project memory or prepare a read-only onboarding proposal."""
+        return _inspect_project_memory(
+            target_root,
+            current_root=current_root,
+            max_depth=max_depth,
+        )
+
+    @mcp.tool()
+    async def write_project_memory(
+        target_root: str,
+        content: str,
+        confirm: bool = False,
+        update_existing: bool = False,
+        allow_mcubuddy_target: bool = False,
+    ) -> dict:
+        """Write canonical memory inside a confirmed target project."""
+        return _write_project_memory(
+            target_root,
+            content,
+            config=runtime_config_for(session),
+            confirm=confirm,
+            update_existing=update_existing,
+            allow_mcubuddy_target=allow_mcubuddy_target,
+        )
 
     @mcp.tool()
     async def list_demo_profiles() -> dict:

@@ -11,12 +11,14 @@ Record the board/revision, MCU marking and backend target, probe model/ID, backe
 ### A. Discover
 
 ```text
+inspect_project_memory(target_root="confirmed firmware project root")
 get_runtime_config()
 list_connected_probes()
 get_target_info(target="target-name")
 ```
 
-Reuse recorded identity for a known board. For first setup, changed hardware, missing identity, or
+Project memory belongs to the confirmed firmware project. Reuse stable identity for a known board,
+then verify last-known hardware values. For first setup, changed hardware, missing identity, or
 connection recovery, run `doctor()`, `first_contact()`, and
 `match_chip_name(target="device marking")` before continuing.
 

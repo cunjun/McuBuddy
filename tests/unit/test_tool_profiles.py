@@ -50,3 +50,8 @@ def test_core_tool_names_are_unique_and_immutable() -> None:
 
 def test_core_profile_exposes_read_only_runtime_config_for_resume() -> None:
     assert "get_runtime_config" in CORE_TOOL_NAMES
+
+
+def test_core_profile_exposes_target_project_memory_tools() -> None:
+    assert "inspect_project_memory" in CORE_TOOL_NAMES
+    assert "write_project_memory" in CORE_TOOL_NAMES

@@ -5,15 +5,17 @@ These examples show compact evidence-first requests. Exact tool signatures live 
 ## Connect and baseline
 
 ```text
+inspect_project_memory(target_root="confirmed firmware project root")
 get_runtime_config()
 probe_connect(target="target-name")
 probe_reset(halt=True)
 read_stopped_context()
 ```
 
-For first setup, an unknown or changed board, missing required configuration, or connection
-recovery, run `doctor()` and `first_contact()` before `configure_probe(...)`. A new AI task alone
-does not require first contact.
+Read or propose memory only inside the confirmed firmware project. If it is missing, explain the
+proposal and call `write_project_memory(...)` only after confirmation. For first setup, changed
+hardware, missing configuration, or connection recovery, run `doctor()` and `first_contact()`
+before `configure_probe(...)`. A new AI task alone does not require first contact.
 
 Expected report: probe ID, backend target, stop reason, core registers, errors, and the next missing evidence.
 

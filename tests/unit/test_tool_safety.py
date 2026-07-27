@@ -92,6 +92,9 @@ def test_tool_safety_marks_read_only_and_destructive_tools() -> None:
     assert get_tool_safety("board_smoke_test")["level"] == "execution-changing"
     assert get_tool_safety("probe_reset")["level"] == "execution-changing"
     assert get_tool_safety("probe_write_memory")["level"] == "state-changing"
+    assert get_tool_safety("inspect_project_memory")["level"] == "read-only"
+    assert get_tool_safety("write_project_memory")["level"] == "persistent"
+    assert get_tool_safety("write_project_memory")["requires_confirmation"] is True
     assert get_tool_safety("probe_read_mpu_regions")["level"] == "state-changing"
     assert get_tool_safety("erase_flash")["level"] == "persistent-destructive"
     assert get_tool_safety("program_flash")["level"] == "persistent-destructive"
