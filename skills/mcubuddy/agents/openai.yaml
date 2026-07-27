@@ -1,0 +1,4 @@
+interface:
+  display_name: "McuBuddy"
+  short_description: "Use mcubuddy for embedded board debugging"
+  default_prompt: "Use $mcubuddy to diagnose an embedded board issue with probe, ELF, SVD, RTT, RTOS, and flash evidence."

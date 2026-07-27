@@ -32,10 +32,10 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Lint
-        run: ruff check src tests scripts skills/mcubug/scripts
+        run: ruff check src tests scripts skills/mcubuddy/scripts
 
       - name: Check skill references
-        run: python skills/mcubug/scripts/sync_references.py --check
+        run: python skills/mcubuddy/scripts/sync_references.py --check
 
       - name: Check documentation contracts
         run: python scripts/validate_docs.py

@@ -374,25 +374,25 @@ Safety principles:
 This prevents one request from switching backends, disconnecting the probe, or changing shared
 state while another probe operation is still running.
 
-## 📦 mcubug Skill
+## 📦 mcubuddy Skill
 
-The repository includes `skills/mcubug`, which guides Codex and Claude Code to use these tools in an
+The repository includes `skills/mcubuddy`, which guides Codex and Claude Code to use these tools in an
 “evidence first, judgment second” sequence instead of treating MCP tools as an unordered command list.
 
 Install for Codex:
 
 ```powershell
-python .\skills\mcubug\scripts\install_skill.py --target codex --overwrite
+python .\skills\mcubuddy\scripts\install_skill.py --target codex --overwrite
 ```
 
 Install for Claude Code:
 
 ```powershell
-python .\skills\mcubug\scripts\install_skill.py --target cc --overwrite
+python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 ```
 
 Restart the client or open a new session after installation. See
-[mcubug Skill for Codex and Claude Code](docs/mcubug-skill.md) for details.
+[mcubuddy Skill for Codex and Claude Code](docs/mcubuddy-skill.md) for details.
 
 ## ⚠️ Current Limitations
 
@@ -416,7 +416,7 @@ Restart the client or open a new session after installation. See
 - Complete tool index: [Tool Reference](docs/tool-reference.md)
 - Backend and hardware validation: [Support Matrix](docs/support-matrix.md)
 - Project design: [Architecture](docs/architecture.md)
-- Skill installation and maintenance: [mcubug Skill](docs/mcubug-skill.md)
+- Skill installation and maintenance: [mcubuddy Skill](docs/mcubuddy-skill.md)
 - v0.5.2 release summary: [v0.5.2 Release Notes](docs/releases/v0.5.2.md)
 
 ## 🧪 Local Development

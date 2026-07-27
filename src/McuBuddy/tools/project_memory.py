@@ -179,7 +179,7 @@ def _resolve_existing_directory(path: str) -> Path | dict:
 
 
 def _looks_like_mcubuddy_root(root: Path) -> bool:
-    return (root / "skills" / "mcubug" / "SKILL.md").is_file() and (
+    return (root / "skills" / "mcubuddy" / "SKILL.md").is_file() and (
         root / "src" / "McuBuddy"
     ).is_dir()
 

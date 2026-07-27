@@ -7,7 +7,7 @@ from McuBuddy.tool_profiles import CORE_TOOL_NAMES
 
 
 ROOT = Path(__file__).parents[2]
-SKILL_PATH = ROOT / "skills" / "mcubug" / "SKILL.md"
+SKILL_PATH = ROOT / "skills" / "mcubuddy" / "SKILL.md"
 TOOL_CALL_RE = re.compile(r"`([a-z][a-z0-9_]*)\([^`]*\)`")
 
 

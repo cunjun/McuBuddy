@@ -55,7 +55,7 @@ def install_skill(
 
     return {
         "status": "ok",
-        "summary": f"Prepared mcubug skill installation for {target}.",
+        "summary": f"Prepared mcubuddy skill installation for {target}.",
         "target": target,
         "home": str(install_home),
         "source": str(source_path),
@@ -76,7 +76,7 @@ def _resolve_home(home: str | Path | None) -> Path:
 def _resolve_source(source: str | Path | None) -> Path:
     if source is not None:
         return Path(source).expanduser().resolve()
-    repo_skill = Path(__file__).resolve().parents[2] / "skills" / "mcubug"
+    repo_skill = Path(__file__).resolve().parents[2] / "skills" / "mcubuddy"
     return repo_skill.resolve()
 
 
@@ -84,21 +84,21 @@ def _target_paths(target: SkillTarget, home: Path) -> list[tuple[str, Path]]:
     targets: list[tuple[str, Path]] = []
     if target in ("codex", "both"):
         codex_home = Path(os.environ.get("CODEX_HOME", home / ".codex"))
-        targets.append(("codex-skill", codex_home / "skills" / "mcubug"))
+        targets.append(("codex-skill", codex_home / "skills" / "mcubuddy"))
     if target in ("claude", "both"):
         claude_home = Path(os.environ.get("CLAUDE_HOME", home / ".claude"))
-        targets.append(("claude-skill", claude_home / "skills" / "mcubug"))
+        targets.append(("claude-skill", claude_home / "skills" / "mcubuddy"))
     return targets
 
 
 def _next_steps(target: SkillTarget) -> list[str]:
     steps = []
     if target in ("codex", "both"):
-        steps.append("Use `$mcubug` in Codex after restarting the session.")
+        steps.append("Use `$mcubuddy` in Codex after restarting the session.")
         steps.append(
             "Installing the skill does not register the McuBuddy MCP server; "
             "configure it with docs/windows-mcp-config-example.md, then restart Codex."
         )
     if target in ("claude", "both"):
-        steps.append("Use the installed mcubug skill from Claude's local skills directory.")
+        steps.append("Use the installed mcubuddy skill from Claude's local skills directory.")
     return steps

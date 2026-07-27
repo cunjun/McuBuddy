@@ -68,10 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     skill = subparsers.add_parser("skill", help="Skill management commands.")
     skill_sub = skill.add_subparsers(dest="skill_command", required=True)
-    install = skill_sub.add_parser("install", help="Install the mcubug assistant skill.")
+    install = skill_sub.add_parser("install", help="Install the mcubuddy assistant skill.")
     install.add_argument("--target", choices=["codex", "claude", "both"], default="codex")
     install.add_argument("--home", help="Home directory used to resolve assistant directories.")
-    install.add_argument("--source", help="Source mcubug skill directory.")
+    install.add_argument("--source", help="Source mcubuddy skill directory.")
     install.add_argument("--dry-run", action="store_true", help="Preview without writing files.")
     install.add_argument("--force", action="store_true", help="Replace existing installs.")
     install.add_argument("--json", action="store_true", help="Print machine-readable JSON.")

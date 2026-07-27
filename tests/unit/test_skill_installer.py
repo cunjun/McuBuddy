@@ -6,7 +6,7 @@ from McuBuddy.skill_installer import install_skill
 def _skill_source(tmp_path):
     source = tmp_path / "source"
     source.mkdir()
-    (source / "SKILL.md").write_text("# mcubug\n", encoding="utf-8")
+    (source / "SKILL.md").write_text("# mcubuddy\n", encoding="utf-8")
     return source
 
 
@@ -16,7 +16,7 @@ def test_install_skill_writes_codex_target(tmp_path) -> None:
     report = install_skill(source=source, home=tmp_path / "home", target="codex")
 
     assert report["status"] == "ok"
-    assert (tmp_path / "home" / ".codex" / "skills" / "mcubug" / "SKILL.md").is_file()
+    assert (tmp_path / "home" / ".codex" / "skills" / "mcubuddy" / "SKILL.md").is_file()
     assert any("does not register" in step for step in report["next_steps"])
     assert any("windows-mcp-config-example.md" in step for step in report["next_steps"])
 
@@ -51,5 +51,5 @@ def test_install_skill_force_replaces_existing_target(tmp_path) -> None:
     report = install_skill(source=source, home=tmp_path / "home", target="codex", force=True)
 
     assert report["status"] == "ok"
-    installed = tmp_path / "home" / ".codex" / "skills" / "mcubug" / "SKILL.md"
+    installed = tmp_path / "home" / ".codex" / "skills" / "mcubuddy" / "SKILL.md"
     assert installed.read_text(encoding="utf-8") == "# updated\n"

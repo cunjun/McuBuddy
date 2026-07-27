@@ -1,4 +1,4 @@
-"""Sync mcubug skill references from this McuBuddy checkout."""
+"""Sync mcubuddy skill references from this McuBuddy checkout."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def main() -> int:
     parser.add_argument(
         "--skill",
         default=str(Path(__file__).resolve().parents[1]),
-        help="Path to the mcubug skill directory.",
+        help="Path to the mcubuddy skill directory.",
     )
     parser.add_argument(
         "--check",

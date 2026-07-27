@@ -1,11 +1,11 @@
-# mcubug Skill
+# mcubuddy Skill
 
-`skills/mcubug/` packages McuBuddy's evidence-first operating guidance for Codex-compatible clients.
+`skills/mcubuddy/` packages McuBuddy's evidence-first operating guidance for Codex-compatible clients.
 
 ## Contents
 
 ```text
-skills/mcubug/
+skills/mcubuddy/
 ├── SKILL.md
 ├── agents/openai.yaml
 ├── references/
@@ -35,15 +35,15 @@ Do not edit generated copies directly.
 ## Synchronize and validate
 
 ```bash
-python skills/mcubug/scripts/sync_references.py
-python skills/mcubug/scripts/sync_references.py --check
-python skills/mcubug/scripts/validate_skill.py
+python skills/mcubuddy/scripts/sync_references.py
+python skills/mcubuddy/scripts/sync_references.py --check
+python skills/mcubuddy/scripts/validate_skill.py
 python scripts/validate_docs.py
 ```
 
 ## Install elsewhere
 
-Copy the complete `skills/mcubug` directory into the receiving Codex skills directory, then restart the client. Keep the directory structure intact.
+Copy the complete `skills/mcubuddy` directory into the receiving Codex skills directory, then restart the client. Keep the directory structure intact.
 
 ## Maintenance rule
 

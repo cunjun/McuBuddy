@@ -157,18 +157,18 @@ def _check_config(config: RuntimeConfig) -> dict[str, Any]:
 
 
 def _check_skill_installation() -> dict[str, Any]:
-    skill_path = Path.home() / ".codex" / "skills" / "mcubug" / "SKILL.md"
+    skill_path = Path.home() / ".codex" / "skills" / "mcubuddy" / "SKILL.md"
     if skill_path.is_file():
         return {
-            "name": "mcubug-skill",
+            "name": "mcubuddy-skill",
             "status": "ok",
-            "summary": f"mcubug skill is installed at {skill_path}.",
+            "summary": f"mcubuddy skill is installed at {skill_path}.",
             "path": str(skill_path),
         }
     return {
-        "name": "mcubug-skill",
+        "name": "mcubuddy-skill",
         "status": "warning",
-        "summary": "mcubug skill is not installed in the default Codex skill directory.",
+        "summary": "mcubuddy skill is not installed in the default Codex skill directory.",
         "path": str(skill_path),
     }
 

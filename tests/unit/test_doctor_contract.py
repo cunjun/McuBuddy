@@ -38,7 +38,7 @@ def test_doctor_does_not_warn_about_probe_rs_when_pyocd_is_selected(monkeypatch)
     )
     monkeypatch.setattr(
         "McuBuddy.doctor._check_skill_installation",
-        lambda: {"name": "mcubug-skill", "status": "ok", "summary": "installed"},
+        lambda: {"name": "mcubuddy-skill", "status": "ok", "summary": "installed"},
     )
 
     report = build_doctor_report(RuntimeConfig())

@@ -4,11 +4,11 @@ import sys
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SYNC_SCRIPT = REPO_ROOT / "skills" / "mcubug" / "scripts" / "sync_references.py"
+SYNC_SCRIPT = REPO_ROOT / "skills" / "mcubuddy" / "scripts" / "sync_references.py"
 
 
 def test_reference_sync_check_detects_drift_without_modifying_files(tmp_path: Path) -> None:
-    skill_dir = tmp_path / "mcubug"
+    skill_dir = tmp_path / "mcubuddy"
     references = skill_dir / "references"
     references.mkdir(parents=True)
     stale_reference = references / "quickstart.md"

@@ -67,7 +67,7 @@ def _iter_markdown_files(repo: Path):
             for part in relative_parts
         ):
             continue
-        if relative_parts[:3] == ("skills", "mcubug", "references"):
+        if relative_parts[:3] == ("skills", "mcubuddy", "references"):
             continue
         yield path
 
@@ -86,7 +86,7 @@ def _iter_current_docs(repo: Path):
                 continue
             yield path
 
-    skill = repo / "skills" / "mcubug" / "SKILL.md"
+    skill = repo / "skills" / "mcubuddy" / "SKILL.md"
     if skill.exists():
         yield skill
 

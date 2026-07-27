@@ -117,8 +117,8 @@ def test_write_respects_allowed_file_paths(tmp_path: Path) -> None:
 
 
 def test_write_refuses_mcubuddy_root_without_explicit_override(tmp_path: Path) -> None:
-    (tmp_path / "skills" / "mcubug").mkdir(parents=True)
-    (tmp_path / "skills" / "mcubug" / "SKILL.md").write_text("", encoding="utf-8")
+    (tmp_path / "skills" / "mcubuddy").mkdir(parents=True)
+    (tmp_path / "skills" / "mcubuddy" / "SKILL.md").write_text("", encoding="utf-8")
     (tmp_path / "src" / "McuBuddy").mkdir(parents=True)
 
     result = write_project_memory(

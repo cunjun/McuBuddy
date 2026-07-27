@@ -1,4 +1,4 @@
-"""Validate mcubug skill structure and local markdown links."""
+"""Validate mcubuddy skill structure and local markdown links."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ def main() -> int:
         "skill",
         nargs="?",
         default=str(Path(__file__).resolve().parents[1]),
-        help="Path to the mcubug skill directory.",
+        help="Path to the mcubuddy skill directory.",
     )
     args = parser.parse_args()
 
@@ -120,12 +120,12 @@ def main() -> int:
     errors.extend(validate_links(skill))
 
     if errors:
-        print("mcubug skill validation failed:")
+        print("mcubuddy skill validation failed:")
         for error in errors:
             print(f"- {error}")
         return 1
 
-    print("mcubug skill validation passed.")
+    print("mcubuddy skill validation passed.")
     return 0
 
 

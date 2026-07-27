@@ -1,9 +1,9 @@
 ---
-name: mcubug
+name: mcubuddy
 description: Use when debugging MCU firmware or boards with McuBuddy, including probe, boot, HardFault, peripheral, register, memory, ELF/SVD, RTOS, RTT/UART, Keil, GDB, pyOCD, J-Link, ST-Link, or CMSIS-DAP work.
 ---
 
-# mcubug
+# mcubuddy
 
 ## Core Principle
 

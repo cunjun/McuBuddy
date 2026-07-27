@@ -350,25 +350,25 @@ step_over()
 
 这可以避免一个探针操作尚未完成时，另一个请求同时切换后端、断开连接或修改共享状态。
 
-## 📦 mcubug Skill
+## 📦 mcubuddy Skill
 
-仓库包含 `skills/mcubug`，用于指导 Codex 和 Claude Code 按“先证据、后判断”的顺序使用
+仓库包含 `skills/mcubuddy`，用于指导 Codex 和 Claude Code 按“先证据、后判断”的顺序使用
 这些工具，而不是把 MCP 工具当作无序命令列表。
 
 安装到 Codex：
 
 ```powershell
-python .\skills\mcubug\scripts\install_skill.py --target codex --overwrite
+python .\skills\mcubuddy\scripts\install_skill.py --target codex --overwrite
 ```
 
 安装到 Claude Code：
 
 ```powershell
-python .\skills\mcubug\scripts\install_skill.py --target cc --overwrite
+python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 ```
 
 安装完成后重启客户端或新建会话。详细说明见
-[mcubug Skill for Codex and Claude Code](docs/mcubug-skill.md)。
+[mcubuddy Skill for Codex and Claude Code](docs/mcubuddy-skill.md)。
 
 ## ⚠️ 当前限制
 
@@ -389,7 +389,7 @@ python .\skills\mcubug\scripts\install_skill.py --target cc --overwrite
 - 完整工具索引：[Tool Reference](docs/tool-reference.md)
 - 后端与硬件验证：[Support Matrix](docs/support-matrix.md)
 - 项目架构：[Architecture](docs/architecture.md)
-- Skill 安装维护：[mcubug Skill](docs/mcubug-skill.md)
+- Skill 安装维护：[mcubuddy Skill](docs/mcubuddy-skill.md)
 - v0.5.2 发布摘要：[v0.5.2 Release Notes](docs/releases/v0.5.2.md)
 
 ## 🧪 本地开发

@@ -47,7 +47,7 @@ def test_config_validate_reports_invalid_profile(tmp_path, capsys) -> None:
 def test_skill_install_dry_run_json(tmp_path, capsys) -> None:
     source = tmp_path / "source"
     source.mkdir()
-    (source / "SKILL.md").write_text("# mcubug\n", encoding="utf-8")
+    (source / "SKILL.md").write_text("# mcubuddy\n", encoding="utf-8")
 
     assert (
         cli.main(

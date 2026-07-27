@@ -1,4 +1,4 @@
-"""Install the repository mcubug skill into a local AI assistant skills directory."""
+"""Install the repository mcubuddy skill into a local AI assistant skills directory."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def main() -> int:
     parser.add_argument(
         "--source",
         default=str(Path(__file__).resolve().parents[1]),
-        help="Path to the source mcubug skill directory.",
+        help="Path to the source mcubuddy skill directory.",
     )
     parser.add_argument(
         "--home",
@@ -38,7 +38,7 @@ def main() -> int:
         "--force",
         dest="force",
         action="store_true",
-        help="Replace an existing mcubug skill at the destination.",
+        help="Replace an existing mcubuddy skill at the destination.",
     )
     parser.add_argument("--dry-run", action="store_true", help="Preview without writing files.")
     parser.add_argument("--json", action="store_true", help="Print a machine-readable report.")
