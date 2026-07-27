@@ -44,13 +44,16 @@ def test_documented_core_tools_match_code_allowlist() -> None:
     assert missing == set()
 
 
-def test_skill_preflights_runtime_before_probe_configuration() -> None:
+def test_skill_resumes_known_projects_before_first_contact() -> None:
     skill = SKILL_PATH.read_text(encoding="utf-8")
 
+    assert "Known Project Resume" in skill
+    assert "`get_runtime_config()`" in skill
+    assert "Do not run `first_contact()`" in skill
     assert "`doctor()`" in skill
     assert "`first_contact()`" in skill
-    assert skill.index("`doctor()`") < skill.index("`configure_probe(...)")
-    assert skill.index("`first_contact()`") < skill.index("`configure_probe(...)")
+    assert skill.index("`get_runtime_config()`") < skill.index("`first_contact()`")
+    assert skill.index("Known Project Resume") < skill.index("Default Flow")
 
 
 def test_skill_marks_every_hidden_tool_call_as_full_only() -> None:
@@ -79,18 +82,28 @@ def test_quickstart_documents_management_and_rtt_safety_preflight() -> None:
     assert "MCUBUDDY_MAX_RTT_SCAN_SIZE" in quickstart
 
 
-def test_session_workflows_start_with_core_preflight() -> None:
+def test_session_workflows_resume_config_before_first_contact() -> None:
     for relative_path in [
         "docs/ai-playbook.md",
         "docs/ai-examples.md",
-        "docs/generic-board-workflow.md",
         "docs/board-validation-guide.md",
     ]:
         text = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "get_runtime_config()" in text, relative_path
         assert "doctor()" in text, relative_path
         assert "first_contact()" in text, relative_path
-        assert text.index("doctor()") < text.index("configure_probe(")
-        assert text.index("first_contact()") < text.index("configure_probe(")
+        assert text.index("get_runtime_config()") < text.index("first_contact()")
+
+
+def test_new_board_workflow_keeps_full_preflight() -> None:
+    text = (ROOT / "docs" / "generic-board-workflow.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "doctor()" in text
+    assert "first_contact()" in text
+    assert text.index("doctor()") < text.index("configure_probe(")
+    assert text.index("first_contact()") < text.index("configure_probe(")
 
 
 def test_windows_setup_runs_doctor_before_hardware_access() -> None:

@@ -5,15 +5,15 @@ These examples show compact evidence-first requests. Exact tool signatures live 
 ## Connect and baseline
 
 ```text
-doctor()
-first_contact()
-list_connected_probes()
-match_chip_name(target="STM32F103C8")
-configure_probe(backend="pyocd")
+get_runtime_config()
 probe_connect(target="target-name")
 probe_reset(halt=True)
 read_stopped_context()
 ```
+
+For first setup, an unknown or changed board, missing required configuration, or connection
+recovery, run `doctor()` and `first_contact()` before `configure_probe(...)`. A new AI task alone
+does not require first contact.
 
 Expected report: probe ID, backend target, stop reason, core registers, errors, and the next missing evidence.
 

@@ -57,8 +57,9 @@ Core tools:
 `list_tool_safety(include_hidden=true)` to inspect metadata for the full catalog without changing
 the MCP exposure surface.
 
-Start a new session with `doctor()` and `first_contact()` before configuring a probe. The first
-checks runtime/config readiness; the second summarizes session prerequisites and missing evidence.
+Start with `get_runtime_config()` and reuse complete settings for a known project. Use `doctor()`
+and `first_contact()` before configuring a probe only for first setup, an unknown or changed board,
+missing required configuration, connection recovery, or an explicit full preflight request.
 
 `pack_diagnose(target, search_roots=None)` finds and checksum-verifies a managed CMSIS-Pack.
 `pack_install(target, destination="packs", confirm=False)` downloads the exact trusted pack,

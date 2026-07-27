@@ -12,17 +12,25 @@ Use McuBuddy as an evidence collector, not as permission to guess. Keep the boar
 6. Change execution or device state only with a clear reason.
 7. Re-collect the same evidence after a fix so the comparison is meaningful.
 
-## Start a session
+## Resume or start a session
 
 <!-- mcubuddy-profile: core -->
+```text
+get_runtime_config()
+probe_connect(target="target-name")
+probe_reset(halt=True)
+read_stopped_context()
+```
+
+Reuse configured target, backend, probe identity, ELF, build, and log settings. Do not treat a new
+AI task as a new board. If required configuration is missing, the board changed, connection
+recovery is needed, or a full preflight was requested, use:
+
 ```text
 doctor()
 first_contact()
 match_chip_name(target="device marking")
 configure_probe(backend="pyocd")
-probe_connect(target="target-name")
-probe_reset(halt=True)
-read_stopped_context()
 ```
 
 The default `core` profile covers the standard evidence-first flow.

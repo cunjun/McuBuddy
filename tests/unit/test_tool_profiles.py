@@ -46,3 +46,7 @@ def test_unknown_profile_lists_valid_values() -> None:
 def test_core_tool_names_are_unique_and_immutable() -> None:
     assert isinstance(CORE_TOOL_NAMES, frozenset)
     assert len(CORE_TOOL_NAMES) == len(set(CORE_TOOL_NAMES))
+
+
+def test_core_profile_exposes_read_only_runtime_config_for_resume() -> None:
+    assert "get_runtime_config" in CORE_TOOL_NAMES
