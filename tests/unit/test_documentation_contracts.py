@@ -27,29 +27,38 @@ def _minimal_repo(tmp_path: Path) -> Path:
     )
     _write(
         tmp_path / "README.md",
-        "default core\nMCUBUDDY_TOOL_PROFILE=full\n[Quickstart](docs/quickstart.md)\n"
+        "default core\nMCUBUDDY_TOOL_PROFILE=full\n[Project Guide](PROJECT_GUIDE.md)\n"
         "[Tool Reference](docs/tool-reference.md)\nexecution-changing\n"
         f"Upstream: {UPSTREAM_URL}\n",
     )
     _write(
         tmp_path / "README_zh.md",
-        "默认 core\nMCUBUDDY_TOOL_PROFILE=full\n[快速开始](docs/quickstart.md)\n"
+        "默认 core\nMCUBUDDY_TOOL_PROFILE=full\n[项目指南](PROJECT_GUIDE_zh.md)\n"
         "[工具参考](docs/tool-reference.md)\n执行状态变化\n"
         f"上游：{UPSTREAM_URL}\n",
     )
-    _write(tmp_path / "docs" / "quickstart.md", "# Quickstart\n")
+    sections = (
+        "<!-- guide-section:positioning -->\n"
+        "<!-- guide-section:maintenance -->\n"
+        "src/McuBuddy/mcp_execution.py\n"
+        "src/McuBuddy/tool_safety.py\n"
+        "src/McuBuddy/tool_profiles.py\n"
+        "SessionToolRegistrar\nProbeBackend\ncore\nfull\n"
+    )
+    _write(tmp_path / "PROJECT_GUIDE.md", "# Guide\n\n> Project version: 0.5.2\n" + sections)
+    _write(
+        tmp_path / "PROJECT_GUIDE_zh.md",
+        "# 指南\n\n> 项目版本：0.5.2\n" + sections,
+    )
     _write(tmp_path / "docs" / "tool-reference.md", "# Tools\n")
     _write(
         tmp_path / "LICENSE",
         "MIT License\n\nCopyright (c) 2026 SolarWang233\n",
     )
-    _write(
-        tmp_path / "NOTICE",
-        f"Upstream: {UPSTREAM_URL}\n",
-    )
+    _write(tmp_path / "NOTICE", f"Upstream: {UPSTREAM_URL}\n")
     _write(
         tmp_path / "pyproject.toml",
-        f'[project.urls]\nUpstream = "{UPSTREAM_URL}"\n',
+        f'[project]\nversion = "0.5.2"\n[project.urls]\nUpstream = "{UPSTREAM_URL}"\n',
     )
     return tmp_path
 
@@ -114,10 +123,49 @@ def test_broken_relative_markdown_link_is_reported(tmp_path: Path) -> None:
 
 def test_readmes_must_share_critical_contract_tokens(tmp_path: Path) -> None:
     repo = _minimal_repo(tmp_path)
-    (repo / "README_zh.md").write_text("[快速开始](docs/quickstart.md)\n", encoding="utf-8")
+    (repo / "README_zh.md").write_text("[项目指南](PROJECT_GUIDE_zh.md)\n", encoding="utf-8")
     assert any(
         "README_zh.md: missing critical token" in error
         for error in validate_repository(repo)
+    )
+
+
+def test_project_guides_must_have_matching_section_ids(tmp_path: Path) -> None:
+    repo = _minimal_repo(tmp_path)
+    path = repo / "PROJECT_GUIDE_zh.md"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            "<!-- guide-section:maintenance -->",
+            "<!-- guide-section:different -->",
+        ),
+        encoding="utf-8",
+    )
+
+    assert "project guides: section IDs are not synchronized" in validate_repository(repo)
+
+
+def test_project_guides_must_match_package_version(tmp_path: Path) -> None:
+    repo = _minimal_repo(tmp_path)
+    path = repo / "PROJECT_GUIDE.md"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("Project version: 0.5.2", "Project version: 0.5.1"),
+        encoding="utf-8",
+    )
+
+    assert "PROJECT_GUIDE.md: project version must be 0.5.2" in validate_repository(repo)
+
+
+def test_project_guides_must_cover_architecture_contract(tmp_path: Path) -> None:
+    repo = _minimal_repo(tmp_path)
+    path = repo / "PROJECT_GUIDE.md"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("SessionToolRegistrar", ""),
+        encoding="utf-8",
+    )
+
+    assert (
+        "PROJECT_GUIDE.md: missing project-guide contract token 'SessionToolRegistrar'"
+        in validate_repository(repo)
     )
 
 
@@ -135,7 +183,6 @@ def test_missing_tool_contract_fails_closed(tmp_path: Path) -> None:
 def test_upstream_attribution_is_required(tmp_path: Path) -> None:
     repo = _minimal_repo(tmp_path)
     (repo / "LICENSE").write_text("MIT License\n", encoding="utf-8")
-
     assert any(
         "LICENSE: missing upstream copyright" in error
         for error in validate_repository(repo)
@@ -159,5 +206,4 @@ def test_upstream_url_is_required_in_project_metadata(
     repo = _minimal_repo(tmp_path)
     path = repo / relative_path
     path.write_text(path.read_text(encoding="utf-8").replace(UPSTREAM_URL, ""), encoding="utf-8")
-
     assert expected_error in validate_repository(repo)

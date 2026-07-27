@@ -7,18 +7,6 @@ import re
 from pathlib import Path
 
 
-REQUIRED_REFERENCES = {
-    "quickstart.md",
-    "windows-mcp-config-example.md",
-    "tool-reference.md",
-    "support-matrix.md",
-    "ai-playbook.md",
-    "ai-examples.md",
-    "generic-board-workflow.md",
-    "board-validation-guide.md",
-    "peripheral-actuator-debug-playbook.md",
-}
-
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(?P<content>.*?)\n---(?:\s*\n|\Z)", re.DOTALL)
 SKILL_NAME_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
@@ -26,9 +14,6 @@ SKILL_NAME_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 
 def iter_markdown_files(skill: Path):
     yield skill / "SKILL.md"
-    references = skill / "references"
-    if references.exists():
-        yield from references.glob("*.md")
 
 
 def validate_links(skill: Path) -> list[str]:
@@ -111,11 +96,6 @@ def main() -> int:
         errors.extend(validate_body(skill_text))
     if not (skill / "agents" / "openai.yaml").exists():
         errors.append("missing agents/openai.yaml")
-
-    references = skill / "references"
-    present = {path.name for path in references.glob("*.md")} if references.exists() else set()
-    for missing in sorted(REQUIRED_REFERENCES - present):
-        errors.append(f"missing reference: references/{missing}")
 
     errors.extend(validate_links(skill))
 

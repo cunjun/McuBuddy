@@ -22,6 +22,45 @@ def test_help_lists_management_commands(capsys) -> None:
     assert "probes" in output
     assert "skill" in output
     assert "packs" in output
+    assert "home" in output
+
+
+def test_home_set_show_and_clear_json(tmp_path, capsys) -> None:
+    checkout = tmp_path / "McuBuddy"
+    (checkout / "src" / "McuBuddy").mkdir(parents=True)
+    (checkout / "pyproject.toml").write_text(
+        '[project]\nname = "McuBuddy"\n',
+        encoding="utf-8",
+    )
+
+    assert (
+        cli.main(
+            [
+                "home",
+                "set",
+                str(checkout),
+                "--home",
+                str(tmp_path),
+                "--confirm",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    saved = json.loads(capsys.readouterr().out)
+    assert saved["installation"]["repo_root"] == str(checkout.resolve())
+
+    assert cli.main(["home", "show", "--home", str(tmp_path), "--json"]) == 0
+    shown = json.loads(capsys.readouterr().out)
+    assert shown["installation"]["repo_root"] == str(checkout.resolve())
+
+    assert (
+        cli.main(
+            ["home", "clear", "--home", str(tmp_path), "--confirm", "--json"]
+        )
+        == 0
+    )
+    capsys.readouterr()
 
 
 def test_config_generate_prints_toml(capsys) -> None:

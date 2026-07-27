@@ -29,12 +29,12 @@ def test_evaluation_scenarios_are_parseable_and_complete() -> None:
     assert "executed: false" in text
 
 
-def test_quickstart_documents_core_and_full_profiles() -> None:
-    quickstart = (ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8")
-
-    assert "MCUBUDDY_TOOL_PROFILE" in quickstart
-    assert "core" in quickstart
-    assert "full" in quickstart
+def test_project_guides_document_core_and_full_profiles() -> None:
+    for relative_path in ["PROJECT_GUIDE.md", "PROJECT_GUIDE_zh.md"]:
+        guide = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "MCUBUDDY_TOOL_PROFILE" in guide
+        assert "core" in guide
+        assert "full" in guide
 
 
 def test_documented_core_tools_match_code_allowlist() -> None:
@@ -81,20 +81,16 @@ def test_skill_body_stays_concise() -> None:
     assert len(skill.split()) <= 600
 
 
-def test_quickstart_documents_management_and_rtt_safety_preflight() -> None:
-    quickstart = (ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8")
-
-    assert "McuBuddy doctor --json" in quickstart
-    assert "McuBuddy config show --json" in quickstart
-    assert "MCUBUDDY_MAX_RTT_SCAN_SIZE" in quickstart
+def test_project_guides_document_management_and_rtt_safety_preflight() -> None:
+    for relative_path in ["PROJECT_GUIDE.md", "PROJECT_GUIDE_zh.md"]:
+        guide = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "McuBuddy.exe doctor --json" in guide
+        assert "McuBuddy.exe config show --json" in guide
+        assert "MCUBUDDY_MAX_RTT_SCAN_SIZE" in guide
 
 
 def test_session_workflows_resume_config_before_first_contact() -> None:
-    for relative_path in [
-        "docs/ai-playbook.md",
-        "docs/ai-examples.md",
-        "docs/board-validation-guide.md",
-    ]:
+    for relative_path in ["PROJECT_GUIDE.md", "PROJECT_GUIDE_zh.md"]:
         text = (ROOT / relative_path).read_text(encoding="utf-8")
         assert "get_runtime_config()" in text, relative_path
         assert "doctor()" in text, relative_path
@@ -103,20 +99,9 @@ def test_session_workflows_resume_config_before_first_contact() -> None:
 
 
 def test_new_board_workflow_keeps_full_preflight() -> None:
-    text = (ROOT / "docs" / "generic-board-workflow.md").read_text(
-        encoding="utf-8"
-    )
-
-    assert "doctor()" in text
-    assert "first_contact()" in text
-    assert text.index("doctor()") < text.index("configure_probe(")
-    assert text.index("first_contact()") < text.index("configure_probe(")
-
-
-def test_windows_setup_runs_doctor_before_hardware_access() -> None:
-    windows = (ROOT / "docs" / "windows-mcp-config-example.md").read_text(
-        encoding="utf-8"
-    )
-
-    assert "McuBuddy.exe' doctor --json" in windows
-    assert windows.index("doctor --json") < windows.index("configure_probe(")
+    for relative_path in ["PROJECT_GUIDE.md", "PROJECT_GUIDE_zh.md"]:
+        text = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "doctor()" in text
+        assert "first_contact()" in text
+        assert text.index("doctor()") < text.index("configure_probe(")
+        assert text.index("first_contact()") < text.index("configure_probe(")

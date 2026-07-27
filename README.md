@@ -27,7 +27,7 @@ from earlier alpha releases.
 > AI calls tools, organizes evidence, and advances the debugging process. Before resets, execution
 > control, memory writes, or Flash operations, confirm the target, impact, and recovery plan.
 
-**Documentation:** [Quickstart](docs/quickstart.md) ·
+**Documentation:** [Project Guide](PROJECT_GUIDE.md) ·
 [Tool Reference](docs/tool-reference.md) ·
 [Support Matrix](docs/support-matrix.md) ·
 [Architecture](docs/architecture.md)
@@ -126,7 +126,7 @@ pip install -e ".[dev]"
 ```
 
 For a Windows source checkout, explicitly configure the virtual-environment Python executable and
-working directory. See the [Windows MCP Configuration Example](docs/windows-mcp-config-example.md),
+working directory. See [Installation and First Connection](PROJECT_GUIDE.md#3-installation-and-first-connection),
 then restart the AI client.
 
 ### 4. Run a First Read-Only Check
@@ -198,8 +198,8 @@ Read the FreeRTOS task list, current task contexts, and stack usage. Identify bl
 abnormal states, or stack risks without modifying the target state.
 ```
 
-For more evidence-driven prompts and decision sequences, see the
-[AI Playbook](docs/ai-playbook.md) and [AI Examples](docs/ai-examples.md).
+For the evidence-first decision order and common scenarios, see
+[Common Debugging Workflows](PROJECT_GUIDE.md#6-common-debugging-workflows).
 
 ## 🧰 Capabilities and Backend Support
 
@@ -303,7 +303,7 @@ compare_elf_to_flash()
 
 Before downloading, confirm the project, target, firmware output, chip model, and recovery plan.
 For the complete new-project workflow, see the
-[Generic Board Workflow](docs/generic-board-workflow.md).
+[Project Guide](PROJECT_GUIDE.md).
 
 ## 🔍 Common Debugging Workflows
 
@@ -379,6 +379,12 @@ state while another probe operation is still running.
 The repository includes `skills/mcubuddy`, which guides Codex and Claude Code to use these tools in an
 “evidence first, judgment second” sequence instead of treating MCP tools as an unordered command list.
 
+The Skill is an optional workflow enhancement, not a prerequisite for hardware debugging. A correctly
+installed and configured local McuBuddy MCP server must remain fully usable without it. To let the
+Skill rediscover a source checkout when MCP is unavailable, run
+`McuBuddy home set C:\path\to\McuBuddy --confirm`; the path is stored in the user-level
+`.mcubuddy/installations.json` registry, never in `SKILL.md`.
+
 Install for Codex:
 
 ```powershell
@@ -392,7 +398,8 @@ python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 ```
 
 Restart the client or open a new session after installation. See
-[mcubuddy Skill for Codex and Claude Code](docs/mcubuddy-skill.md) for details.
+[Boundaries Between McuBuddy, MCP, and the Skill](PROJECT_GUIDE.md#2-boundaries-between-mcubuddy-mcp-and-the-skill)
+for details.
 
 ## ⚠️ Current Limitations
 
@@ -408,15 +415,12 @@ Restart the client or open a new session after installation. See
 
 ## 📚 Documentation
 
-- First-time setup: [Quickstart](docs/quickstart.md)
-- Any board and Keil project: [Generic Board Workflow](docs/generic-board-workflow.md)
-- Windows MCP setup: [Windows MCP Configuration](docs/windows-mcp-config-example.md)
-- AI debugging decision order: [AI Playbook](docs/ai-playbook.md)
-- Common scenarios: [AI Examples](docs/ai-examples.md)
+- Complete project overview and workflows: [Project Guide](PROJECT_GUIDE.md)
+- Chinese project overview: [项目指南](PROJECT_GUIDE_zh.md)
 - Complete tool index: [Tool Reference](docs/tool-reference.md)
+- Chinese tool usage: [MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - Backend and hardware validation: [Support Matrix](docs/support-matrix.md)
 - Project design: [Architecture](docs/architecture.md)
-- Skill installation and maintenance: [mcubuddy Skill](docs/mcubuddy-skill.md)
 - v0.5.2 release summary: [v0.5.2 Release Notes](docs/releases/v0.5.2.md)
 
 ## 🧪 Local Development
@@ -427,7 +431,7 @@ pytest
 ruff check src tests
 ```
 
-See the [Docs Index](docs/README.md) for repository layout and documentation ownership.
+See the [Project Guide](PROJECT_GUIDE.md) for repository layout and documentation ownership.
 
 ## 🙏 Upstream and Acknowledgements
 

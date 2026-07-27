@@ -22,7 +22,7 @@ McuBuddy v0.5.2 默认启用精简的 `core` MCP 工具配置档；如需早期 
 > 项目仍处于 Alpha 阶段。人负责目标、接线和风险决策；AI 负责调用工具、组织证据和推进调试。
 > 涉及复位、运行控制、内存写入和 Flash 擦写时，应先确认目标、影响和恢复方式。
 
-**文档入口：** [快速开始](docs/quickstart.md) ·
+**文档入口：** [项目指南](PROJECT_GUIDE_zh.md) ·
 [工具索引](docs/tool-reference.md) ·
 [支持矩阵](docs/support-matrix.md) ·
 [项目架构](docs/architecture.md)
@@ -118,7 +118,7 @@ pip install -e ".[dev]"
 ```
 
 Windows 源码环境建议显式配置虚拟环境 Python 和工作目录，详见
-[Windows MCP 配置示例](docs/windows-mcp-config-example.md)。配置后重新启动 AI 客户端。
+[安装与首次连接](PROJECT_GUIDE_zh.md#3-安装与首次连接)。配置后重新启动 AI 客户端。
 
 ### 4. 第一次只读检查
 
@@ -182,8 +182,8 @@ read_stopped_context()
 不要修改目标状态。
 ```
 
-更多证据驱动的提示词和决策顺序见 [AI Playbook](docs/ai-playbook.md) 与
-[AI Examples](docs/ai-examples.md)。
+更多证据驱动的决策顺序和场景见
+[常见调试流程](PROJECT_GUIDE_zh.md#6-常见调试流程)。
 
 ## 🧰 能力与后端支持
 
@@ -283,7 +283,7 @@ compare_elf_to_flash()
 ```
 
 下载前应确认工程、Target、固件输出、芯片型号和恢复策略。更完整的新工程接入流程见
-[Generic Board Workflow](docs/generic-board-workflow.md)。
+[项目指南](PROJECT_GUIDE_zh.md)。
 
 ## 🔍 常见调试流程
 
@@ -355,6 +355,12 @@ step_over()
 仓库包含 `skills/mcubuddy`，用于指导 Codex 和 Claude Code 按“先证据、后判断”的顺序使用
 这些工具，而不是把 MCP 工具当作无序命令列表。
 
+Skill 是可选的工作流增强，不是硬件调试的前置条件。只要本地 McuBuddy MCP 服务已经
+正确安装和配置，不安装 Skill 也应能够使用完整的硬件能力。若需要让 Skill 在 MCP
+不可用时重新发现源码目录，可先运行
+`McuBuddy home set C:\path\to\McuBuddy --confirm`；路径保存在用户级
+`.mcubuddy/installations.json`，不会写入 `SKILL.md`。
+
 安装到 Codex：
 
 ```powershell
@@ -368,7 +374,7 @@ python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 ```
 
 安装完成后重启客户端或新建会话。详细说明见
-[mcubuddy Skill for Codex and Claude Code](docs/mcubuddy-skill.md)。
+[McuBuddy、MCP 与 Skill 的边界](PROJECT_GUIDE_zh.md#2-mcubuddymcp-与-skill-的边界)。
 
 ## ⚠️ 当前限制
 
@@ -381,15 +387,12 @@ python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 
 ## 📚 文档导航
 
-- 第一次使用：[Quickstart](docs/quickstart.md)
-- 接入任意板卡和 Keil 工程：[Generic Board Workflow](docs/generic-board-workflow.md)
-- Windows MCP 配置：[Windows MCP Configuration](docs/windows-mcp-config-example.md)
-- AI 调试决策顺序：[AI Playbook](docs/ai-playbook.md)
-- 常见场景示例：[AI Examples](docs/ai-examples.md)
+- 完整项目说明与工作流：[项目指南](PROJECT_GUIDE_zh.md)
+- 英文项目说明：[Project Guide](PROJECT_GUIDE.md)
 - 完整工具索引：[Tool Reference](docs/tool-reference.md)
+- MCP 工具中文用途：[MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - 后端与硬件验证：[Support Matrix](docs/support-matrix.md)
 - 项目架构：[Architecture](docs/architecture.md)
-- Skill 安装维护：[mcubuddy Skill](docs/mcubuddy-skill.md)
 - v0.5.2 发布摘要：[v0.5.2 Release Notes](docs/releases/v0.5.2.md)
 
 ## 🧪 本地开发
@@ -400,7 +403,7 @@ pytest
 ruff check src tests
 ```
 
-项目目录约定和贡献文档归属见 [Docs Index](docs/README.md)。
+项目目录约定和文档归属见 [项目指南](PROJECT_GUIDE_zh.md)。
 
 ## 🙏 上游来源与致谢
 

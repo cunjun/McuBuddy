@@ -40,3 +40,19 @@ def test_skill_body_validation_enforces_concise_main_file() -> None:
     )
 
     assert validator.validate_body(text) == ["SKILL.md exceeds 600 words"]
+
+
+def test_skill_uses_user_registry_without_mutating_itself() -> None:
+    text = (ROOT / "skills" / "mcubuddy" / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "McuBuddy home show --json" in text
+    assert "McuBuddy home set" in text
+    assert "Never write a local checkout path into `SKILL.md`" in text
+
+
+def test_skill_is_self_contained_without_copied_markdown_references() -> None:
+    validator = _load_validator()
+
+    assert validator.validate_links(ROOT / "skills" / "mcubuddy") == []
+    references = ROOT / "skills" / "mcubuddy" / "references"
+    assert not references.exists() or not list(references.glob("*.md"))

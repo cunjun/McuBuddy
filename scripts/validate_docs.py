@@ -12,6 +12,8 @@ LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 IDENTIFIER_RE = re.compile(r"\b[a-z][a-z0-9_]+\b")
 PROFILE_START_RE = re.compile(r"<!--\s*mcubuddy-profile:\s*(core|full)\s*-->")
 PROFILE_END = "<!-- /mcubuddy-profile -->"
+GUIDE_SECTION_RE = re.compile(r"<!--\s*guide-section:([a-z0-9-]+)\s*-->")
+PROJECT_VERSION_RE = re.compile(r'(?m)^version\s*=\s*"([^"]+)"')
 STALE_REFERENCES = ("PROGRESS.md", "README_CN.md")
 MACHINE_PATH_PATTERNS = (
     re.compile(r"file:///", re.IGNORECASE),
@@ -22,18 +24,27 @@ README_REQUIRED_TOKENS = {
     "README.md": (
         "core",
         "MCUBUDDY_TOOL_PROFILE=full",
-        "docs/quickstart.md",
+        "PROJECT_GUIDE.md",
         "docs/tool-reference.md",
         "execution-changing",
     ),
     "README_zh.md": (
         "core",
         "MCUBUDDY_TOOL_PROFILE=full",
-        "docs/quickstart.md",
+        "PROJECT_GUIDE_zh.md",
         "docs/tool-reference.md",
         "执行状态变化",
     ),
 }
+PROJECT_GUIDE_REQUIRED_TOKENS = (
+    "src/McuBuddy/mcp_execution.py",
+    "src/McuBuddy/tool_safety.py",
+    "src/McuBuddy/tool_profiles.py",
+    "SessionToolRegistrar",
+    "ProbeBackend",
+    "core",
+    "full",
+)
 UPSTREAM_COPYRIGHT = "Copyright (c) 2026 SolarWang233"
 UPSTREAM_URL = "https://github.com/SolarWang233/mcudbg"
 UPSTREAM_URL_FILES = ("NOTICE", "README.md", "README_zh.md", "pyproject.toml")
@@ -54,6 +65,7 @@ def validate_repository(repo: Path) -> list[str]:
         errors.extend(_validate_profile_regions(relative, text, known_tools, core_tools))
 
     errors.extend(_validate_readmes(repo))
+    errors.extend(_validate_project_guides(repo))
     errors.extend(_validate_upstream_license(repo))
     errors.extend(_validate_upstream_urls(repo))
     return sorted(errors)
@@ -210,6 +222,47 @@ def _validate_readmes(repo: Path) -> list[str]:
         for token in required_tokens:
             if token not in text:
                 errors.append(f"{name}: missing critical token '{token}'")
+    return errors
+
+
+def _validate_project_guides(repo: Path) -> list[str]:
+    errors: list[str] = []
+    guide_paths = (repo / "PROJECT_GUIDE.md", repo / "PROJECT_GUIDE_zh.md")
+    texts: list[str] = []
+    for path in guide_paths:
+        if not path.exists():
+            errors.append(f"{path.name}: missing file")
+            texts.append("")
+            continue
+        text = path.read_text(encoding="utf-8")
+        texts.append(text)
+        for token in PROJECT_GUIDE_REQUIRED_TOKENS:
+            if token not in text:
+                errors.append(
+                    f"{path.name}: missing project-guide contract token '{token}'"
+                )
+
+    if all(texts):
+        section_ids = [GUIDE_SECTION_RE.findall(text) for text in texts]
+        if section_ids[0] != section_ids[1]:
+            errors.append("project guides: section IDs are not synchronized")
+        if not section_ids[0]:
+            errors.append("project guides: missing guide-section markers")
+
+    pyproject = repo / "pyproject.toml"
+    if pyproject.exists():
+        match = PROJECT_VERSION_RE.search(pyproject.read_text(encoding="utf-8"))
+        if match:
+            version = match.group(1)
+            version_tokens = (
+                f"Project version: {version}",
+                f"项目版本：{version}",
+            )
+            for path, text, token in zip(guide_paths, texts, version_tokens):
+                if text and token not in text:
+                    errors.append(
+                        f"{path.name}: project version must be {version}"
+                    )
     return errors
 
 

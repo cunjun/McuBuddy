@@ -7,40 +7,34 @@ description: Use when debugging MCU firmware or boards with McuBuddy, including 
 
 ## Core Principle
 
-Collect reproducible evidence. Prefer reads, separate facts from hypotheses, and verify changes.
-Start in `core`; use `full` only when required.
+Prefer reads, separate evidence from hypotheses, and verify changes. Start in `core`.
 
-## Reference Selection
+## Local McuBuddy Discovery
 
-Load only the reference needed for the current task:
+With MCP tools available, never ask for the checkout. Otherwise run `McuBuddy home show --json`.
+If unavailable, ask once, validate `pyproject.toml` plus `src/McuBuddy`, and find `.venv`. After
+confirmation run `McuBuddy home set <checkout> --confirm --json` with that executable. Store paths
+only in user-level `.mcubuddy/installations.json`.
+Never write a local checkout path into `SKILL.md` or repository documentation.
 
-| Situation | Read |
-| --- | --- |
-| First setup | `references/quickstart.md` |
-| Windows MCP config | `references/windows-mcp-config-example.md` |
-| Unknown target or board | `references/generic-board-workflow.md` |
-| Tool names | `references/tool-reference.md` |
-| Capabilities and limits | `references/support-matrix.md` |
-| AI debug session | `references/ai-playbook.md` |
-| Symptom examples | `references/ai-examples.md` |
-| ACK without actuator output | `references/peripheral-actuator-debug-playbook.md` |
-| Board validation | `references/board-validation-guide.md` |
+## Project Reference
+
+This Skill is deliberately self-contained and does not duplicate the repository documentation.
+When the source checkout is available, use its `PROJECT_GUIDE.md` for the project overview,
+`docs/tool-reference.md` for exact signatures, and `docs/support-matrix.md` for verified support.
 
 ## Target Project Memory
 
-Use the user's firmware root or one unambiguous Keil project. Never use the Skill location as the
-target, and never write another firmware project's memory into the McuBuddy repository.
-
-Call `inspect_project_memory(...)` before `get_runtime_config()`. Reuse confirmed facts and verify
-last-known hardware. If missing, explain the proposal; call `write_project_memory(...)` only after
-the user confirms root and content. Ambiguity means no write.
+Use the confirmed firmware root, never the Skill location;
+never write another firmware project's memory into the McuBuddy repository.
+Call `inspect_project_memory(...)` before `get_runtime_config()`. Verify remembered hardware.
+Write only after confirming root and content.
 
 ## Known Project Resume
 
-Reuse project memory and runtime configuration. Do not run `first_contact()` when they supply what
-the task needs. Use `doctor()` and `first_contact()` only for first setup, changed hardware, missing
-configuration, connection recovery, or an explicit preflight. A new Codex task alone is not first
-contact.
+Reuse memory and config. Do not run `first_contact()` except for first setup, changed hardware,
+missing config, recovery, or requested preflight; use `doctor()` there too. A new Codex task alone
+is not first contact.
 
 ## Default Flow
 
@@ -56,10 +50,8 @@ For a board problem without requested commands:
 
 ## Profile Boundary
 
-- Keep the default path inside `core`.
-- A full-only call requires `MCUBUDDY_TOOL_PROFILE=full` before startup and a restart; a running
-  core session cannot expose it.
-- Use `list_tool_safety(include_hidden=true)` to inspect hidden metadata without changing profiles.
+- Stay in `core`. Full-only calls require `MCUBUDDY_TOOL_PROFILE=full` before startup and restart.
+- Inspect hidden metadata with `list_tool_safety(include_hidden=true)`; never change profiles live.
 
 ## Symptom Routing
 
@@ -74,7 +66,7 @@ For a board problem without requested commands:
 | FreeRTOS stall | `collect_rtos_evidence(...)`, then task context when a task is named |
 | Clock issue | RCC/clock SVD evidence |
 | Need path proof | Full-only: restart in `full`, then use `run_to_function(...)` or `source_step()` |
-| Actuator command ACKed but no motion/output | Use the actuator playbook evidence ladder |
+| Actuator command ACKed but no motion/output | Prove firmware, bus, peripheral, enable/direction, then physical output |
 
 ## Ordering and Safety
 

@@ -1,8 +1,8 @@
 # Tool Reference
 
-This page is the canonical grouped index for the public `McuBuddy` MCP tools. Keep short
-workflow examples in [Quickstart](quickstart.md), scenario guidance in [AI Playbook](ai-playbook.md),
-and capability status in [Support Matrix](support-matrix.md).
+This page is the canonical grouped index for the public `McuBuddy` MCP tools. Keep workflows and
+scenario guidance in the [Project Guide](../PROJECT_GUIDE.md), and capability status in the
+[Support Matrix](support-matrix.md).
 
 ## Tool Profiles
 

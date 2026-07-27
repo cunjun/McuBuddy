@@ -12,6 +12,11 @@ from .config import (
     validate_config_file,
 )
 from .doctor import build_doctor_error_report, build_doctor_report
+from .installation_registry import (
+    clear_installation_home,
+    get_installation_home,
+    set_installation_home,
+)
 from .pack_manager import diagnose_pack, install_pack
 from .session import SessionState, create_probe_backend
 from .skill_installer import install_skill
@@ -34,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
             return _skill(args)
         if command == "packs":
             return _packs(args)
+        if command == "home":
+            return _home(args)
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
     parser.error(f"unknown command: {command}")
@@ -94,6 +101,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--confirm", action="store_true", help="Confirm the network download and file write."
     )
     pack_install.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+
+    home = subparsers.add_parser("home", help="Manage the local McuBuddy installation record.")
+    home_sub = home.add_subparsers(dest="home_command", required=True)
+    home_show = home_sub.add_parser("show", help="Show the default McuBuddy installation.")
+    home_show.add_argument("--home", help="Home directory containing the .mcubuddy registry.")
+    home_show.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    home_set = home_sub.add_parser("set", help="Save the default McuBuddy checkout.")
+    home_set.add_argument("path", help="Path to the local McuBuddy checkout.")
+    home_set.add_argument("--home", help="Home directory containing the .mcubuddy registry.")
+    home_set.add_argument("--confirm", action="store_true", help="Confirm the user-level write.")
+    home_set.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    home_clear = home_sub.add_parser("clear", help="Clear the default McuBuddy checkout.")
+    home_clear.add_argument("--home", help="Home directory containing the .mcubuddy registry.")
+    home_clear.add_argument("--confirm", action="store_true", help="Confirm the user-level write.")
+    home_clear.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
 
     return parser
 
@@ -214,6 +236,23 @@ def _packs(args: argparse.Namespace) -> int:
         _print_report(report, as_json=args.json)
         return 0 if report["status"] == "ok" else 1
     raise ValueError(f"Unknown packs command: {args.packs_command}")
+
+
+def _home(args: argparse.Namespace) -> int:
+    if args.home_command == "show":
+        report = get_installation_home(home=args.home)
+    elif args.home_command == "set":
+        report = set_installation_home(
+            args.path,
+            home=args.home,
+            confirm=args.confirm,
+        )
+    elif args.home_command == "clear":
+        report = clear_installation_home(home=args.home, confirm=args.confirm)
+    else:
+        raise ValueError(f"Unknown home command: {args.home_command}")
+    _print_report(report, as_json=args.json)
+    return 0 if report["status"] in ("ok", "not_configured") else 1
 
 
 def _print_report(report: dict[str, Any], *, as_json: bool) -> None:
