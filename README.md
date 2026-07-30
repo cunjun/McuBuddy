@@ -157,45 +157,45 @@ not be halted, instruct the AI to perform only non-intrusive probe and environme
 
 ## 💬 Examples for AI Assistants
 
-The following prompts can be given directly to an AI assistant connected to `McuBuddy`.
+The following prompts can be given directly to an AI assistant connected to `McuBuddy`. Unless
+explicitly authorized, it should start with read-only checks and explain the impact before
+resetting, halting, flashing, or sending test data.
 
-### Inspect the Probe and Board
+### Check Whether the Board Is Connected
 
 ```text
-List the connected debug probes, confirm that the target chip matches, and perform a read-only
-check of the board. Do not reset the target, write memory, or erase or program Flash.
-If you identify a risk, stop and explain it first.
+Use McuBuddy to check whether the <exact model> board is connected. The probe is
+<ST-Link/J-Link/CMSIS-DAP>.
 ```
 
-### Diagnose a HardFault
+### Check Whether Communication Works
 
 ```text
-Halt the target and read PC, LR, SP, and the fault registers. Resolve the call stack using the
-current AXF/ELF, identify the most likely source location of the HardFault, and list the evidence
-that supports the conclusion.
+Use McuBuddy to debug the Keil project under <firmware project path>. The MCU is <exact model>,
+the probe is <ST-Link/J-Link/CMSIS-DAP>, and the interface is <USART1/SPI1/I2C1/CAN/etc.>.
+Check whether initialization, transmit and receive paths, protocol handling, and communication on
+the real board have problems.
 ```
 
-### Build a Keil Project and Continue Debugging
+### Board Does Not Start or Keeps Resetting
 
 ```text
-Find the Keil project and targets under the project directory. First tell me which project,
-target, and UV4.exe you plan to use. After confirmation, build the project and load the generated
-AXF without downloading firmware, then use the probe to run to main.
+Use McuBuddy to find out why the board for <firmware project path> does not start, repeatedly resets,
+or crashes after running.
 ```
 
-### Inspect Peripheral Configuration
+### Peripheral Does Not Respond
 
 ```text
-Load an SVD that matches the target chip and inspect the RCC, GPIOA, and UART peripheral state.
-Check whether the clock, pin multiplexing, and interrupt configuration are consistent, and explain
-any abnormal fields.
+Use McuBuddy to check why <LED/motor/sensor/other peripheral> does not respond and whether its
+initialization or control logic has problems.
 ```
 
-### Investigate a FreeRTOS Stall
+### Program Stops Running
 
 ```text
-Read the FreeRTOS task list, current task contexts, and stack usage. Identify blocked tasks,
-abnormal states, or stack risks without modifying the target state.
+Use McuBuddy to check why the program stalls, a task does not run, or the system stops after some
+time.
 ```
 
 For the evidence-first decision order and common scenarios, see
@@ -242,105 +242,9 @@ Keil provides project build, linking, and optional firmware download. `McuBuddy`
 the Keil compiler or parse and rewrite project build rules. It discovers projects, selects targets,
 invokes UV4, reads logs and output files, and feeds the results into automated debugging.
 
-```text
-Discover the Keil project
-  → Configure UV4, the target, and logs
-  → Invoke the Keil build
-  → Load the generated AXF/ELF
-  → Connect through pyOCD/J-Link and diagnose the board
-  → Download through Keil after user confirmation
-  → Reconnect and verify Flash
-```
-
-### 1. Discover and Configure a Project
-
-```text
-discover_keil_projects(root=r"C:\path\to\app")
-
-configure_keil_project(
-    project_path=r"C:\path\to\app\MDK-ARM\Project.uvprojx",
-    uv4_path=r"C:\Keil_v5\UV4\UV4.exe",
-    target_name="Debug",
-)
-```
-
-The user or AI should review automatic discovery results. When a directory contains multiple
-projects, targets, or output files, explicitly specify `project_path`, `target_name`, and `elf_path`.
-
-### 2. Build and Load the AXF
-
-```text
-build_project(timeout_seconds=120)
-configure_elf(elf_path=r"C:\path\to\app\MDK-ARM\Objects\Project.axf")
-elf_load(path=r"C:\path\to\app\MDK-ARM\Objects\Project.axf")
-```
-
-Once the AXF is loaded, the AI can reliably resolve PC, LR, and memory addresses to functions,
-source lines, local variables, and call stacks.
-
-### 3. Connect the Probe and Continue Debugging
-
-```text
-configure_probe(target="py32f030x8", backend="pyocd")
-probe_connect(target="py32f030x8")
-probe_halt()
-read_stopped_context()
-run_to_function("main")
-```
-
-If Keil, J-Link Commander, a GDB server, or another debugger already owns the probe, close that
-session first; otherwise pyOCD or J-Link may fail to connect.
-
-### 4. Download and Verify
-
-`flash_firmware` invokes the configured Keil UV4 download flow and modifies target Flash, so it
-requires explicit confirmation:
-
-```text
-flash_firmware(timeout_seconds=120, confirm=True)
-compare_elf_to_flash()
-```
-
-Before downloading, confirm the project, target, firmware output, chip model, and recovery plan.
-For the complete new-project workflow, see the
-[Project Guide](PROJECT_GUIDE.md).
-
-## 🔍 Common Debugging Workflows
-
-### Board Does Not Start or Enters HardFault
-
-```text
-probe_halt()
-read_stopped_context(include_fault_registers=True)
-diagnose_hardfault()
-backtrace()
-```
-
-### Peripheral Produces No Output
-
-```text
-svd_load(svd_path=r"C:\path\Device.svd")
-svd_read_peripheral(peripheral="RCC")
-svd_read_peripheral(peripheral="GPIOA")
-diagnose_peripheral_stuck(peripheral="UART")
-```
-
-### FreeRTOS Stalls
-
-```text
-list_rtos_tasks()
-rtos_task_context(task_name="WorkerTask")
-read_stack_usage()
-```
-
-### Run to a Source Location
-
-```text
-run_to_function("main")
-run_to_source(file="main.c", line=120)
-source_step()
-step_over()
-```
+`McuBuddy` will locate the Keil project and output files, connect to the board, and collect evidence
+as needed. It will explain the impact before building, downloading, or changing the board's running
+state. See the [Project Guide](PROJECT_GUIDE.md) for detailed tool calls and new-project setup.
 
 ## 🛡️ Safety Model
 

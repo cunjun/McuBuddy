@@ -145,41 +145,41 @@ read_stopped_context()
 
 ## 💬 AI 使用示例
 
-这些提示词可以直接交给已连接 `McuBuddy` 的 AI 助手。
+这些提示词可以直接交给已连接 `McuBuddy` 的 AI 助手。除非明确授权，否则默认只进行读取；
+复位、暂停、烧录或发送测试数据前，AI 应先说明影响并确认操作范围。
 
-### 检查探针和开发板
+### 检查开发板是否连接正常
 
 ```text
-列出当前连接的调试探针，确认目标芯片是否匹配，然后对开发板执行一次只读检查。
-不要复位、写内存或擦写 Flash；发现风险时先停下来说明。
+使用 McuBuddy 检查 <具体型号> 开发板是否连接正常。调试器为
+<ST-Link/J-Link/CMSIS-DAP>。
 ```
 
-### 定位 HardFault
+### 检查通信是否正常
 
 ```text
-暂停目标，读取 PC、LR、SP 和故障寄存器，结合当前 AXF/ELF 解析调用栈，
-判断 HardFault 最可能发生在哪段源码，并列出支持结论的证据。
+使用 McuBuddy 调试 <固件工程路径> 下的 Keil 工程。MCU 型号为 <具体型号>，调试器为
+<ST-Link/J-Link/CMSIS-DAP>，检查 <USART1/SPI1/I²C1/CAN等> 通信，判断初始化、收发链路、
+协议处理和真实板卡通信是否存在问题。
 ```
 
-### 构建 Keil 工程并继续调试
+### 开不了机或反复重启
 
 ```text
-在项目目录中查找 Keil 工程和 Target，先告诉我将使用哪个工程、哪个 Target 和哪个 UV4.exe。
-确认后构建工程，加载生成的 AXF，但不要下载固件；随后通过探针运行到 main。
+使用 McuBuddy 检查 <固件工程路径> 对应的开发板为什么开不了机、反复重启或运行后崩溃。
 ```
 
-### 检查外设配置
+### 外设没有反应
 
 ```text
-加载与目标芯片匹配的 SVD，读取 RCC、GPIOA 和 UART 外设状态，
-检查时钟、引脚复用和中断配置是否一致，并说明异常字段。
+使用 McuBuddy 检查 <LED/电机/传感器等外设> 为什么没有反应，查看相关初始化和控制逻辑
+是否存在问题。
 ```
 
-### 检查 FreeRTOS 卡顿
+### 程序运行卡住
 
 ```text
-读取 FreeRTOS 任务列表、当前任务上下文和栈使用情况，找出阻塞、异常状态或栈风险，
-不要修改目标状态。
+使用 McuBuddy 检查程序为什么卡住、任务不运行或运行一段时间后停止。
 ```
 
 更多证据驱动的决策顺序和场景见
@@ -225,102 +225,9 @@ Keil 在本项目中承担工程构建、链接和可选的固件下载。`McuBu
 也不解析或重写工程构建规则；它负责发现工程、选择 Target、调用 UV4、读取日志与输出文件，
 并把结果接入后续自动化调试。
 
-```text
-发现 Keil 工程
-  → 配置 UV4、Target 和日志
-  → 调用 Keil 构建
-  → 加载生成的 AXF/ELF
-  → 通过 pyOCD/J-Link 连接开发板并诊断
-  → 用户确认后调用 Keil 下载
-  → 重新连接并验证 Flash
-```
-
-### 1. 发现并配置工程
-
-```text
-discover_keil_projects(root=r"C:\path\to\app")
-
-configure_keil_project(
-    project_path=r"C:\path\to\app\MDK-ARM\Project.uvprojx",
-    uv4_path=r"C:\Keil_v5\UV4\UV4.exe",
-    target_name="Debug",
-)
-```
-
-自动发现结果应由用户或 AI 检查。一个目录存在多个工程、Target 或输出文件时，建议显式传入
-`project_path`、`target_name` 和 `elf_path`。
-
-### 2. 构建并加载 AXF
-
-```text
-build_project(timeout_seconds=120)
-configure_elf(elf_path=r"C:\path\to\app\MDK-ARM\Objects\Project.axf")
-elf_load(path=r"C:\path\to\app\MDK-ARM\Objects\Project.axf")
-```
-
-加载 AXF 后，AI 才能稳定地把 PC、LR 和内存地址解析为函数、源码行、局部变量与调用栈。
-
-### 3. 连接探针继续调试
-
-```text
-configure_probe(target="py32f030x8", backend="pyocd")
-probe_connect(target="py32f030x8")
-probe_halt()
-read_stopped_context()
-run_to_function("main")
-```
-
-如果 Keil、J-Link Commander、GDB Server 或其他调试器已经占用探针，应先关闭对应会话，
-否则 pyOCD/J-Link 可能无法连接。
-
-### 4. 下载与验证
-
-`flash_firmware` 会调用配置好的 Keil UV4 下载流程并修改目标 Flash，因此必须明确确认：
-
-```text
-flash_firmware(timeout_seconds=120, confirm=True)
-compare_elf_to_flash()
-```
-
-下载前应确认工程、Target、固件输出、芯片型号和恢复策略。更完整的新工程接入流程见
+`McuBuddy` 会根据任务查找 Keil 工程和输出文件、连接开发板并收集证据。涉及构建、下载或
+改变开发板运行状态时，会先说明影响。完整的工具调用和新工程接入方法见
 [项目指南](PROJECT_GUIDE_zh.md)。
-
-## 🔍 常见调试流程
-
-### 板卡无法启动或进入 HardFault
-
-```text
-probe_halt()
-read_stopped_context(include_fault_registers=True)
-diagnose_hardfault()
-backtrace()
-```
-
-### 外设没有输出
-
-```text
-svd_load(svd_path=r"C:\path\Device.svd")
-svd_read_peripheral(peripheral="RCC")
-svd_read_peripheral(peripheral="GPIOA")
-diagnose_peripheral_stuck(peripheral="UART")
-```
-
-### FreeRTOS 卡住
-
-```text
-list_rtos_tasks()
-rtos_task_context(task_name="WorkerTask")
-read_stack_usage()
-```
-
-### 运行到指定源码位置
-
-```text
-run_to_function("main")
-run_to_source(file="main.c", line=120)
-source_step()
-step_over()
-```
 
 ## 🛡️ 安全模型
 
