@@ -31,12 +31,12 @@ def collect_diagnostic_context(
     pc_symbol = None
     lr_symbol = None
     source = None
-    if resolve_symbols and session.elf.is_loaded:
+    if resolve_symbols and session.elf.is_loaded and "pc" in core:
         pc_result = session.elf.resolve_address(core["pc"])
-        lr_result = session.elf.resolve_address(core["lr"])
         pc_symbol = pc_result["symbol"]
-        lr_symbol = lr_result["symbol"]
         source = pc_result["source"]
+        if "lr" in core:
+            lr_symbol = session.elf.resolve_address(core["lr"])["symbol"]
 
     log_lines: list[str] = []
     last_meaningful = None

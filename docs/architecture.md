@@ -54,7 +54,8 @@ Keep public compatibility modules as small re-export layers when a domain become
 The experimental `probe-rs` backend uses `rust/probe-sidecar/` as a hardware execution sidecar.
 Python remains the owner of MCP, sessions, diagnosis, ELF/DWARF, SVD, and RTOS semantics. The
 sidecar owns probe-rs sessions and exchanges versioned, newline-delimited JSON-RPC messages over
-stdio. Keep this protocol internal; it is not a second MCP surface.
+stdio. Protocol v2 negotiates capabilities and carries architecture, core selection, Flash, and RTT
+operations. Keep this protocol internal; it is not a second MCP surface.
 
 `src/McuBuddy/tools/probe/` is the probe domain package:
 

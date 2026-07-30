@@ -224,7 +224,7 @@ For complete tool names, parameters, and return values, see the
 | --- | --- | --- |
 | pyOCD + ST-Link/CMSIS-DAP | Primary backend | Control, memory, Flash, source debugging, RTT, RTOS, and GDB server |
 | J-Link | Primary backend | Control, memory, Flash, source debugging, native RTT, DWT, and GDB server |
-| probe-rs sidecar | Experimental | Discovery, connection, core control, registers, memory, and hardware breakpoints |
+| probe-rs sidecar | Extended preview | ARM/RISC-V/Xtensa discovery, configurable core control, registers, memory, hardware breakpoints, Flash, and RTT |
 | Keil UV4 (Windows) | Build/download backend | Project discovery, target configuration, build, logs, and optional download |
 
 Primary validation coverage includes:
@@ -404,8 +404,8 @@ for details.
 ## ⚠️ Current Limitations
 
 - Keil build and download currently target Windows + Keil UV4.
-- The probe-rs sidecar remains experimental and does not yet cover Flash, RTT, SWO, or an official
-  binary release.
+- The probe-rs sidecar covers Flash and RTT but still requires target-specific real-board
+  validation and does not yet have an official binary release.
 - RTOS inspection depends on FreeRTOS symbols and an ELF/AXF that match the target firmware.
 - SVD files are not bundled automatically for every chip and usually come from a CMSIS-Pack or
   the chip vendor.

@@ -15,6 +15,17 @@ from ...errors import BackendUnavailableError
 class SidecarProtocolError(RuntimeError):
     """Raised when the probe sidecar violates or rejects the RPC protocol."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: int | None = None,
+        kind: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.kind = kind
+
 
 class LineTransport(Protocol):
     def write_line(self, line: str) -> None: ...
@@ -33,8 +44,7 @@ def resolve_sidecar_path(configured_path: str | None = None) -> str:
         if candidate and Path(candidate).is_file():
             return str(Path(candidate).resolve())
     raise BackendUnavailableError(
-        "probe-rs sidecar not found; configure probe_rs_sidecar_path or "
-        "McuBuddy_PROBE_SIDECAR."
+        "probe-rs sidecar not found; configure probe_rs_sidecar_path or McuBuddy_PROBE_SIDECAR."
     )
 
 
@@ -99,7 +109,13 @@ class SidecarRpcClient:
     def start(cls, executable: str | None = None) -> SidecarRpcClient:
         return cls(SidecarProcessTransport(resolve_sidecar_path(executable)))
 
-    def call(self, method: str, params: dict[str, Any] | None = None) -> Any:
+    def call(
+        self,
+        method: str,
+        params: dict[str, Any] | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> Any:
         with self._call_lock:
             request_id = self._next_id
             self._next_id += 1
@@ -111,19 +127,32 @@ class SidecarRpcClient:
             }
             self._transport.write_line(json.dumps(request, separators=(",", ":")))
             try:
-                response_line = self._transport.read_line(self._response_timeout_seconds)
+                response_line = self._transport.read_line(
+                    self._response_timeout_seconds if timeout_seconds is None else timeout_seconds
+                )
                 response = json.loads(response_line)
             except SidecarProtocolError:
                 self._transport.close()
                 raise
             except json.JSONDecodeError as exc:
                 raise SidecarProtocolError(f"invalid sidecar JSON response: {exc}") from exc
+            if not isinstance(response, dict):
+                self._transport.close()
+                raise SidecarProtocolError("sidecar response must be a JSON object")
             if response.get("jsonrpc") != "2.0":
                 raise SidecarProtocolError("sidecar response has an invalid jsonrpc version")
             if response.get("id") != request_id:
                 raise SidecarProtocolError("sidecar response id does not match request id")
             if error := response.get("error"):
-                raise SidecarProtocolError(error.get("message", "sidecar request failed"))
+                if not isinstance(error, dict):
+                    self._transport.close()
+                    raise SidecarProtocolError("sidecar error must be a JSON object")
+                data = error.get("data") if isinstance(error.get("data"), dict) else {}
+                raise SidecarProtocolError(
+                    error.get("message", "sidecar request failed"),
+                    code=error.get("code"),
+                    kind=data.get("kind"),
+                )
             if "result" not in response:
                 raise SidecarProtocolError("sidecar response is missing result")
             return response["result"]

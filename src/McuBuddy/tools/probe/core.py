@@ -32,7 +32,18 @@ def connect_probe(session: SessionState, target: str, unique_id: str | None = No
         session.probe.set_connect_hints(hints)
     if probe_supports(session.probe, ProbeCapability.PACK_PATHS):
         session.probe.set_pack_paths(getattr(session.config.probe, "pack_paths", []))
-    result = session.probe.connect(target=match_result["matched_target"], unique_id=unique_id)
+    if session.config.probe.backend == "probe-rs":
+        result = session.probe.connect(
+            target=match_result["matched_target"],
+            unique_id=unique_id,
+            wire_protocol=session.config.probe.probe_rs_wire_protocol,
+            speed_khz=session.config.probe.probe_rs_speed_khz,
+            core_index=session.config.probe.probe_rs_core_index,
+            halt_on_connect=session.config.probe.probe_rs_halt_on_connect,
+            allow_erase_all=session.config.flash.allow_erase,
+        )
+    else:
+        result = session.probe.connect(target=match_result["matched_target"], unique_id=unique_id)
     if result.get("status") == "ok":
         result["target_match"] = match_result
         result["target_patch"] = patch_result

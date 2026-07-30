@@ -148,6 +148,26 @@ def test_read_stopped_context_includes_symbols_and_logs() -> None:
     assert result["log_context"]["last_meaningful_line"] == "sensor init..."
 
 
+def test_read_stopped_context_accepts_non_cortex_register_set() -> None:
+    session = SessionState()
+    session.probe = _FakeBreakpointProbe()
+    session.probe.read_core_registers = lambda: {
+        "pc": 0x42000000,
+        "sp": 0x3FC80000,
+    }
+
+    result = read_stopped_context(
+        session,
+        include_fault_registers=False,
+        resolve_symbols=False,
+    )
+
+    assert result["registers"] == {
+        "pc": "0x42000000",
+        "sp": "0x3fc80000",
+    }
+
+
 def test_clear_breakpoint_and_clear_all_breakpoints() -> None:
     session = SessionState()
     session.probe = _FakeBreakpointProbe()

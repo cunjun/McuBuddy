@@ -29,6 +29,10 @@ class ProbeConfig(BaseModel):
     unique_id: str | None = None
     jlink_dll_path: str | None = None
     probe_rs_sidecar_path: str | None = None
+    probe_rs_wire_protocol: Literal["jtag", "swd"] | None = None
+    probe_rs_speed_khz: int = Field(default=1000, ge=1)
+    probe_rs_core_index: int = Field(default=0, ge=0)
+    probe_rs_halt_on_connect: bool = True
     pack_paths: list[str] = Field(default_factory=list)
     connect_attempts: list[ConnectAttempt] = Field(default_factory=list)
 

@@ -207,7 +207,7 @@ read_stopped_context()
 | --- | --- | --- |
 | pyOCD + ST-Link/CMSIS-DAP | 主要后端 | 控制、内存、Flash、源码调试、RTT、RTOS、GDB Server |
 | J-Link | 主要后端 | 控制、内存、Flash、源码调试、原生 RTT、DWT、GDB Server |
-| probe-rs sidecar | 实验性 | 发现、连接、核心控制、寄存器、内存、硬件断点 |
+| probe-rs sidecar | 扩展预览 | ARM/RISC-V/Xtensa 发现、可配置核心控制、寄存器、内存、硬件断点、Flash、RTT |
 | Keil UV4（Windows） | 构建/下载后端 | 工程发现、Target 配置、构建、日志、可选下载 |
 
 已重点验证：
@@ -379,7 +379,7 @@ python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 ## ⚠️ 当前限制
 
 - Keil 构建和下载目前面向 Windows + Keil UV4。
-- probe-rs sidecar 仍是实验性后端，尚未覆盖 Flash、RTT、SWO 和正式发布二进制。
+- probe-rs sidecar 已覆盖 Flash 和 RTT，但仍需按目标芯片做真实板验证，且尚未提供正式发布二进制。
 - RTOS 检查依赖与目标固件匹配的 FreeRTOS 符号和 ELF/AXF。
 - SVD 文件不随所有芯片自动提供，通常需要来自 CMSIS-Pack 或芯片厂商。
 - SWO 文本捕获受芯片配置、探针能力、引脚复用和板级接线影响。

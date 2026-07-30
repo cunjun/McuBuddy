@@ -102,9 +102,7 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
         return _list_validation_records()
 
     @mcp.tool()
-    async def pack_diagnose(
-        target: str, search_roots: list[str] | None = None
-    ) -> dict:
+    async def pack_diagnose(target: str, search_roots: list[str] | None = None) -> dict:
         """Find and checksum-verify the managed CMSIS-Pack for a target."""
         return _diagnose_pack(target, search_roots=search_roots)
 
@@ -128,6 +126,10 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
         backend: str | None = None,
         jlink_dll_path: str | None = None,
         probe_rs_sidecar_path: str | None = None,
+        probe_rs_wire_protocol: str | None = None,
+        probe_rs_speed_khz: int | None = None,
+        probe_rs_core_index: int | None = None,
+        probe_rs_halt_on_connect: bool | None = None,
         pack_path: str | None = None,
         pack_paths: list[str] | None = None,
         connect_attempts: list[dict[str, object]] | None = None,
@@ -140,6 +142,10 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             backend=backend,
             jlink_dll_path=jlink_dll_path,
             probe_rs_sidecar_path=probe_rs_sidecar_path,
+            probe_rs_wire_protocol=probe_rs_wire_protocol,
+            probe_rs_speed_khz=probe_rs_speed_khz,
+            probe_rs_core_index=probe_rs_core_index,
+            probe_rs_halt_on_connect=probe_rs_halt_on_connect,
             pack_path=pack_path,
             pack_paths=pack_paths,
             connect_attempts=connect_attempts,

@@ -52,6 +52,10 @@ def configure_probe(
     backend: str | None = None,
     jlink_dll_path: str | None = None,
     probe_rs_sidecar_path: str | None = None,
+    probe_rs_wire_protocol: str | None = None,
+    probe_rs_speed_khz: int | None = None,
+    probe_rs_core_index: int | None = None,
+    probe_rs_halt_on_connect: bool | None = None,
     pack_path: str | None = None,
     pack_paths: list[str] | None = None,
     connect_attempts: list[dict[str, object]] | None = None,
@@ -68,12 +72,35 @@ def configure_probe(
 
     next_config = session.config.probe.model_copy(deep=True)
     next_config.backend = next_backend
+    if probe_rs_wire_protocol not in {None, "jtag", "swd"}:
+        return {
+            "status": "error",
+            "summary": "probe_rs_wire_protocol must be 'jtag' or 'swd'.",
+        }
+    if probe_rs_speed_khz is not None and probe_rs_speed_khz < 1:
+        return {
+            "status": "error",
+            "summary": "probe_rs_speed_khz must be at least 1.",
+        }
+    if probe_rs_core_index is not None and probe_rs_core_index < 0:
+        return {
+            "status": "error",
+            "summary": "probe_rs_core_index must not be negative.",
+        }
     if unique_id is not None:
         next_config.unique_id = unique_id
     if jlink_dll_path is not None:
         next_config.jlink_dll_path = jlink_dll_path
     if probe_rs_sidecar_path is not None:
         next_config.probe_rs_sidecar_path = probe_rs_sidecar_path
+    if probe_rs_wire_protocol is not None:
+        next_config.probe_rs_wire_protocol = probe_rs_wire_protocol
+    if probe_rs_speed_khz is not None:
+        next_config.probe_rs_speed_khz = probe_rs_speed_khz
+    if probe_rs_core_index is not None:
+        next_config.probe_rs_core_index = probe_rs_core_index
+    if probe_rs_halt_on_connect is not None:
+        next_config.probe_rs_halt_on_connect = probe_rs_halt_on_connect
     if pack_paths is not None:
         next_config.pack_paths = list(pack_paths)
     if pack_path is not None and pack_path not in next_config.pack_paths:
@@ -125,9 +152,7 @@ def configure_probe(
             candidate_probe.set_pack_paths(next_config.pack_paths)
         connect_hints = patch_result["connect_hints"] if patch_result is not None else None
         if next_config.connect_attempts:
-            connect_hints = {
-                "attempts": connect_attempts_to_dicts(next_config.connect_attempts)
-            }
+            connect_hints = {"attempts": connect_attempts_to_dicts(next_config.connect_attempts)}
         if connect_hints is not None and probe_supports(
             candidate_probe, ProbeCapability.CONNECT_HINTS
         ):

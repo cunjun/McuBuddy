@@ -95,21 +95,29 @@ def flash_image(
             return blocked
         if blocked := ensure_file_size_allowed(config, image_path):
             return blocked
-        payload = image_path.read_bytes()
-        if not payload:
+        if image_path.stat().st_size == 0:
             raise ValueError("Firmware image must not be empty.")
-
-        result = session.probe.flash_image(
-            address=address,
-            data=payload,
-            erase_mode=erase_mode,
-            verify=verify,
-            reset_after=reset_after,
-        )
+        if callable(flash_file := getattr(session.probe, "flash_file", None)):
+            result = flash_file(
+                str(image_path),
+                address=address,
+                erase_mode=erase_mode,
+                verify=verify,
+                reset_after=reset_after,
+            )
+        else:
+            payload = image_path.read_bytes()
+            result = session.probe.flash_image(
+                address=address,
+                data=payload,
+                erase_mode=erase_mode,
+                verify=verify,
+                reset_after=reset_after,
+            )
         return {
             **result,
             "path": str(image_path),
-            "size": len(payload),
+            "size": image_path.stat().st_size,
         }
     except Exception as e:
         return {

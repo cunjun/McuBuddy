@@ -16,12 +16,12 @@ def read_stopped_context(
     pc_symbol = None
     lr_symbol = None
     source = None
-    if resolve_symbols and session.elf.is_loaded:
+    if resolve_symbols and session.elf.is_loaded and "pc" in core:
         pc_result = session.elf.resolve_address(core["pc"])
-        lr_result = session.elf.resolve_address(core["lr"])
         pc_symbol = pc_result["symbol"]
-        lr_symbol = lr_result["symbol"]
         source = pc_result["source"]
+        if "lr" in core:
+            lr_symbol = session.elf.resolve_address(core["lr"])["symbol"]
 
     log_lines: list[str] = []
     last_meaningful = None
@@ -34,10 +34,11 @@ def read_stopped_context(
         "summary": "Read stopped target context.",
         "state": session.probe.get_state(),
         "registers": {
-            "pc": hex(core["pc"]),
-            "lr": hex(core["lr"]),
-            "sp": hex(core["sp"]),
-            "xpsr": hex(core["xpsr"]),
+            **{
+                name: hex(core[name])
+                for name in ("pc", "lr", "sp", "xpsr")
+                if name in core
+            },
             **{name: hex(value) for name, value in fault.items()},
         },
         "symbol_context": {
