@@ -8,7 +8,7 @@
 
 **Languages:** [English](README.md) | [中文](README_zh.md)
 
-**Let AI do more than analyze firmware code: connect to real MCUs, operate debugging tools, and collect board-level evidence.**
+**Extend AI from firmware analysis to real MCUs, closing the loop across diagnosis, code changes, build, flashing, and validation in verified environments.**
 
 `McuBuddy` is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for
 MCU board-level debugging. It exposes debug probes, Keil MDK projects, ELF/DWARF symbols,
@@ -18,32 +18,24 @@ and GDB servers as structured tools that AI assistants can call.
 It is designed for firmware development, board bring-up, fault isolation, debugging automation,
 and AI-assisted validation.
 
-McuBuddy v0.5.2 starts with a focused `core` MCP tool profile by default. Set
-`MCUBUDDY_TOOL_PROFILE=full` in the MCP server environment to expose the complete expert catalog
-from earlier alpha releases.
+McuBuddy starts with a focused `core` MCP tool profile by default. Set
+`MCUBUDDY_TOOL_PROFILE=full` in the MCP server environment to expose the complete expert catalog.
 
 > [!IMPORTANT]
-> Together with AI clients such as Codex, McuBuddy supports a closed-loop workflow covering
-> board-level evidence collection, diagnosis, code modification, build, firmware download,
-> execution, and validation on validated hardware and toolchain combinations.
->
-> Humans remain responsible for defining goals and acceptance criteria, wiring and power safety,
-> authorizing operations that change execution or persistent state, reviewing code changes, and
-> validating new MCU, probe, RTOS, and build-environment combinations. Motors, relays, production
-> devices, and other safety-critical systems also require recovery plans and independent safety
-> protection.
+> Automation does not replace engineering responsibility. Humans remain responsible for goals and
+> acceptance criteria, wiring and power safety, high-risk operation approval, code review, and new
+> environment validation. Motors, relays, and other safety-related devices also require recovery
+> plans and independent protection.
 
-**Documentation:** [Project Guide](PROJECT_GUIDE.md) ·
-[Tool Reference](docs/tool-reference.md) ·
-[Support Matrix](docs/support-matrix.md) ·
-[Architecture](docs/architecture.md)
+**Quick links:** [Quick Start](#-quick-start) · [Project Guide](PROJECT_GUIDE.md) ·
+[Tool Reference](docs/tool-reference.md) · [Support Matrix](docs/support-matrix.md)
 
 ## ✨ Key Features
 
 - **Real-hardware debugging**: Discover and connect to ST-Link, J-Link, CMSIS-DAP, and other
   probes; control target execution; and inspect registers, memory, breakpoints, and watchpoints.
-- **Keil project workflow**: Discover `.uvprojx` / `.uvproj` files, select a target, invoke UV4
-  builds or downloads, and feed the generated AXF/ELF into the debugging workflow.
+- **Keil project workflow**: Discover `.uvprojx` / `.uvproj` files, select a target, invoke Keil
+  MDK through `UV4.exe` for builds or downloads, and feed the generated AXF/ELF into debugging.
 - **Source-level fault diagnosis**: Use ELF/DWARF data to resolve addresses to functions, source
   lines, local variables, and call stacks when investigating HardFaults, startup failures, stack
   overflows, and memory corruption.
@@ -51,10 +43,6 @@ from earlier alpha releases.
   FreeRTOS tasks, task contexts, and stack usage.
 - **Logs and runtime observability**: Read UART, RTT, and selected J-Link SWO logs, and manage
   pyOCD/J-Link GDB server lifecycles.
-- **Safety boundaries**: Classify tools as read-only, execution-changing, runtime-writing, or
-  persistently destructive, with explicit confirmation for high-risk operations.
-- **Core/full tool profiles**: Keep the default MCP schema small for common evidence-first flows,
-  while preserving the complete expert catalog behind explicit startup configuration.
 - **Evidence-driven results**: Return structured target, state, and validation evidence so AI can
   continue an investigation instead of guessing code changes from symptoms alone.
 
@@ -65,24 +53,15 @@ flowchart LR
     AI["AI Client<br/>Codex / Claude Code"] --> MCP["McuBuddy<br/>MCP Server"]
     MCP --> EB["Execution Boundary<br/>Serialized Session"]
     EB --> TOOLS["Debugging Tools<br/>Diagnostics / Symbols / SVD / RTOS / Logs"]
-    TOOLS --> KEIL["Keil UV4<br/>Build / Optional Download"]
+    TOOLS --> KEIL["Keil MDK / UV4.exe<br/>Build / Optional Download"]
     TOOLS --> PROBE["Probe Backends<br/>pyOCD / J-Link / probe-rs"]
     KEIL --> IMAGE["AXF / ELF / HEX / BIN"]
     IMAGE --> TOOLS
     PROBE --> BOARD["Real MCU Board"]
 ```
 
-| Component | Responsibility |
-| --- | --- |
-| AI clients such as Codex and Claude Code | Understand the problem, select tools, interpret results, and propose the next checks |
-| MCP | Standard tool-calling protocol between the AI client and `McuBuddy` |
-| `McuBuddy` | Manage debug sessions, invoke backends, enforce safety checks, and return structured results |
-| Keil MDK / UV4 | Build and link Keil projects, with optional configured firmware download |
-| pyOCD, J-Link, and experimental probe-rs | Connect to probes and access target registers, memory, breakpoints, and Flash |
-| ELF/AXF, DWARF, and SVD | Provide symbols, source locations, variables, call stacks, and peripheral-register semantics |
-
 MCP is not a protocol for invoking Keil. The AI calls `McuBuddy` through MCP; `McuBuddy` then
-uses Keil UV4, pyOCD, J-Link, or another internal backend as required by the task.
+uses Keil MDK through `UV4.exe`, pyOCD, J-Link, or another internal backend as required.
 
 ## 🚀 Quick Start
 
@@ -96,7 +75,8 @@ Basic requirements:
 - the target chip name;
 - preferably, an ELF/AXF image containing debug information.
 
-Windows and an installed Keil MDK / UV4 are required only for Keil build or download features.
+Keil build and download features require Windows with Keil MDK installed. McuBuddy invokes
+µVision through `UV4.exe`, including in Keil MDK v5 installations.
 
 ### 2. Installation
 
@@ -161,77 +141,25 @@ read_stopped_context()
 stable stopped context may halt the target, so it is still execution-changing. If the device must
 not be halted, instruct the AI to perform only non-intrusive probe and environment checks.
 
-## 💬 Examples for AI Assistants
-
-The following prompts can be given directly to an AI assistant connected to `McuBuddy`. Unless
-explicitly authorized, it should start with read-only checks and explain the impact before
-resetting, halting, flashing, or sending test data.
-
-### Check Whether the Board Is Connected
+## 💬 Automated Debugging Example
 
 ```text
-Use McuBuddy to check whether the <exact model> board is connected. The probe is
-<ST-Link/J-Link/CMSIS-DAP>.
-```
-
-### Check Whether Communication Works
-
-```text
-Use McuBuddy to debug the Keil project under <firmware project path>. The MCU is <exact model>,
-the probe is <ST-Link/J-Link/CMSIS-DAP>, and the interface is <USART1/SPI1/I2C1/CAN/etc.>.
-Check whether initialization, transmit and receive paths, protocol handling, and communication on
-the real board have problems.
-```
-
-### Board Does Not Start or Keeps Resetting
-
-```text
-Use McuBuddy to find out why the board for <firmware project path> does not start, repeatedly resets,
-or crashes after running.
-```
-
-### Peripheral Does Not Respond
-
-```text
-Use McuBuddy to check why <LED/motor/sensor/other peripheral> does not respond and whether its
-initialization or control logic has problems.
-```
-
-### Program Stops Running
-
-```text
-Use McuBuddy to check why the program stalls, a task does not run, or the system stops after some
-time.
+Use McuBuddy to debug <project path>. The MCU is <exact model>, and the probe is
+<ST-Link/J-Link/CMSIS-DAP>. First collect board-level evidence and locate the problem. After
+authorization, modify the code, build and flash it, then validate the result on the real board.
 ```
 
 For the evidence-first decision order and common scenarios, see
 [Common Debugging Workflows](PROJECT_GUIDE.md#6-common-debugging-workflows).
 
-## 🧰 Capabilities and Backend Support
-
-### Capability Categories
-
-| Category | Main Capabilities |
-| --- | --- |
-| Probes and targets | Probe discovery, target matching, connect/disconnect, halt/resume, reset, and stepping |
-| CPU and memory | Core/FPU/fault registers, memory access, stopped context, Flash comparison, and verification |
-| Breakpoints and execution | Hardware/software breakpoints, watchpoints, run-to-function/source, and Step Over/Out |
-| Symbols and source | ELF/AXF, DWARF, disassembly, functions, variables, source mapping, and call stacks |
-| Peripherals and RTOS | CMSIS-SVD, peripheral fields, FreeRTOS tasks, task contexts, and stack checks |
-| Logs and services | UART, RTT, selected SWO, and pyOCD/J-Link GDB servers |
-| Projects and diagnostics | Keil project discovery, build/download, HardFault, startup, clock, interrupt, and peripheral diagnosis |
-
-For complete tool names, parameters, and return values, see the
-[Tool Reference](docs/tool-reference.md).
-
-### Backend Support Status
+## 🧰 Backends and Hardware Validation
 
 | Path | Current Role | Main Capabilities |
 | --- | --- | --- |
 | pyOCD + ST-Link/CMSIS-DAP | Primary backend | Control, memory, Flash, source debugging, RTT, RTOS, and GDB server |
 | J-Link | Primary backend | Control, memory, Flash, source debugging, native RTT, DWT, and GDB server |
 | probe-rs sidecar | Extended preview | ARM/RISC-V/Xtensa discovery, configurable core control, registers, memory, hardware breakpoints, Flash, and RTT |
-| Keil UV4 (Windows) | Build/download backend | Project discovery, target configuration, build, logs, and optional download |
+| Keil MDK (Windows, via `UV4.exe`) | Build/download backend | Project discovery, target configuration, build, logs, and optional download; supports MDK v5 installations |
 
 Primary validation coverage includes:
 
@@ -241,16 +169,6 @@ Primary validation coverage includes:
 
 “Implemented in code” does not mean “validated on every board.” Use the
 [Support Matrix](docs/support-matrix.md) and `list_validation_records()` as the source of truth.
-
-## 🔄 Keil MDK / UV4 Workflow
-
-Keil provides project build, linking, and optional firmware download. `McuBuddy` does not replace
-the Keil compiler or parse and rewrite project build rules. It discovers projects, selects targets,
-invokes UV4, reads logs and output files, and feeds the results into automated debugging.
-
-`McuBuddy` will locate the Keil project and output files, connect to the board, and collect evidence
-as needed. It will explain the impact before building, downloading, or changing the board's running
-state. See the [Project Guide](PROJECT_GUIDE.md) for detailed tool calls and new-project setup.
 
 ## 🛡️ Safety Model
 
@@ -290,10 +208,7 @@ The repository includes `skills/mcubuddy`, which guides Codex and Claude Code to
 “evidence first, judgment second” sequence instead of treating MCP tools as an unordered command list.
 
 The Skill is an optional workflow enhancement, not a prerequisite for hardware debugging. A correctly
-installed and configured local McuBuddy MCP server must remain fully usable without it. To let the
-Skill rediscover a source checkout when MCP is unavailable, run
-`McuBuddy home set C:\path\to\McuBuddy --confirm`; the path is stored in the user-level
-`.mcubuddy/installations.json` registry, never in `SKILL.md`.
+installed and configured local McuBuddy MCP server remains fully usable without it.
 
 Install for Codex:
 
@@ -307,13 +222,15 @@ Install for Claude Code:
 python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 ```
 
-Restart the client or open a new session after installation. See
+Restart the client or open a new session after installation. For source-checkout recovery,
+installation registration, and usage boundaries, see
 [Boundaries Between McuBuddy, MCP, and the Skill](PROJECT_GUIDE.md#2-boundaries-between-mcubuddy-mcp-and-the-skill)
 for details.
 
 ## ⚠️ Current Limitations
 
-- Keil build and download currently target Windows + Keil UV4.
+- Keil build and download currently require Windows with Keil MDK and invoke µVision through
+  `UV4.exe`, including in MDK v5 installations.
 - The probe-rs sidecar covers Flash and RTT but still requires target-specific real-board
   validation and does not yet have an official binary release.
 - RTOS inspection depends on FreeRTOS symbols and an ELF/AXF that match the target firmware.
@@ -331,6 +248,7 @@ for details.
 - Chinese tool usage: [MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - Backend and hardware validation: [Support Matrix](docs/support-matrix.md)
 - Project design: [Architecture](docs/architecture.md)
+- v0.5.2 release summary: [v0.5.2 Release Notes](docs/releases/v0.5.2.md)
 
 ## 🧪 Local Development
 
@@ -356,4 +274,5 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ---
 
 If `McuBuddy` helps with your MCU debugging workflow, consider giving the project a Star.
-If you have any good ideas for `McuBuddy`, you can also send your thoughts to `zhou229449@gmail.com`. Thanks.
+If you have suggestions, open an Issue or email
+[zhou229449@gmail.com](mailto:zhou229449@gmail.com).

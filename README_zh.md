@@ -6,7 +6,7 @@
 
 **语言版本：** [English](README.md) | [中文](README_zh.md)
 
-**让 AI 不只会分析固件代码，也能连接真实 MCU、操作调试工具并收集板级证据。**
+**让 AI 从分析固件代码延伸到真实 MCU，在已验证环境中形成诊断、修改、构建、烧录和验证闭环。**
 
 `McuBuddy` 是一个面向 MCU 板级调试的
 [Model Context Protocol（MCP）](https://modelcontextprotocol.io/) 服务端。它把调试探针、
@@ -15,28 +15,22 @@ FreeRTOS 状态、Flash 操作和 GDB Server 统一成 AI 助手可以调用的�
 
 它适合固件开发、板卡 Bring-up、故障定位、调试自动化和 AI 辅助验证。
 
-McuBuddy v0.5.2 默认启用精简的 `core` MCP 工具配置档；如需早期 Alpha 版本中的完整专家
-工具集，请在 MCP 服务环境中设置 `MCUBUDDY_TOOL_PROFILE=full`。
+McuBuddy 默认启用精简的 `core` MCP 工具配置档；如需完整专家工具集，请在 MCP 服务
+环境中设置 `MCUBUDDY_TOOL_PROFILE=full`。
 
 > [!IMPORTANT]
-> McuBuddy 与 Codex 等 AI 客户端结合后，已经能够在通过验证的硬件与工具链组合上，
-> 完成实机证据采集、故障诊断、代码修改、工程编译、固件下载、运行和结果验证组成的
-> 自动化调试闭环。
->
-> 人仍负责确定调试目标和验收标准、保证接线与供电安全、授权会改变运行状态或持久化状态的
-> 操作、审查代码修改，以及验证新的 MCU、调试器、RTOS 和构建环境组合。对于电机、继电器、
-> 生产设备及其他安全相关系统，还需要准备恢复方案和独立安全保护。
+> 自动化不替代工程责任。人仍负责调试目标与验收标准、接线与供电安全、高风险操作授权、
+> 代码审查和新环境验证；电机、继电器及其他安全相关设备还需具备恢复方案和独立保护。
 
-**文档入口：** [项目指南](PROJECT_GUIDE_zh.md) ·
-[工具索引](docs/tool-reference.md) ·
-[支持矩阵](docs/support-matrix.md) ·
-[项目架构](docs/architecture.md)
+**快速入口：** [快速开始](#-快速开始) · [项目指南](PROJECT_GUIDE_zh.md) ·
+[工具索引](docs/tool-reference.md) · [支持矩阵](docs/support-matrix.md)
 
 ## ✨ 核心能力
 
 - **真实硬件调试**：发现并连接 ST-Link、J-Link、CMSIS-DAP 等探针，控制目标运行状态，
   读取寄存器、内存、断点和观察点。
-- **Keil 工程闭环**：发现 `.uvprojx` / `.uvproj`，选择 Target，调用 UV4 构建或下载，
+- **Keil 工程闭环**：发现 `.uvprojx` / `.uvproj`，选择 Target，通过 Keil MDK 的
+  `UV4.exe` 执行构建或下载，
   并将生成的 AXF/ELF 接入后续调试。
 - **源码级故障诊断**：利用 ELF/DWARF 将地址还原为函数、源码行、局部变量和调用栈，
   辅助分析 HardFault、启动失败、栈溢出和内存破坏。
@@ -44,8 +38,6 @@ McuBuddy v0.5.2 默认启用精简的 `core` MCP 工具配置档；如需早期 
   和栈使用情况。
 - **日志与运行观测**：读取 UART、RTT 和部分 J-Link SWO 日志，管理 pyOCD/J-Link
   GDB Server 生命周期。
-- **安全边界**：为工具标记只读、执行状态变化、运行时写入和持久性破坏等级，要求高风险
-  操作显式确认。
 - **证据驱动**：返回结构化的目标、状态和验证结果，让 AI 基于板级证据继续排查，
   而不是只根据现象猜测修改代码。
 
@@ -56,24 +48,15 @@ flowchart LR
     AI["AI 客户端<br/>Codex / Claude Code"] --> MCP["McuBuddy<br/>MCP Server"]
     MCP --> EB["执行边界<br/>Session 串行化"]
     EB --> TOOLS["调试工具<br/>诊断 / 符号 / SVD / RTOS / 日志"]
-    TOOLS --> KEIL["Keil UV4<br/>构建 / 可选下载"]
+    TOOLS --> KEIL["Keil MDK / UV4.exe<br/>构建 / 可选下载"]
     TOOLS --> PROBE["探针后端<br/>pyOCD / J-Link / probe-rs"]
     KEIL --> IMAGE["AXF / ELF / HEX / BIN"]
     IMAGE --> TOOLS
     PROBE --> BOARD["真实 MCU 开发板"]
 ```
 
-| 组件 | 主要职责 |
-| --- | --- |
-| Codex、Claude Code 等 AI 客户端 | 理解问题、选择工具、解释结果并提出下一步检查 |
-| MCP | AI 客户端与 `McuBuddy` 之间的标准工具调用协议 |
-| `McuBuddy` | 管理调试 Session、调用后端、执行安全检查并返回结构化结果 |
-| Keil MDK / UV4 | 构建和链接 Keil 工程，并可按配置执行固件下载 |
-| pyOCD、J-Link、实验性 probe-rs | 连接调试探针，控制目标并访问寄存器、内存、断点和 Flash |
-| ELF/AXF、DWARF、SVD | 提供符号、源码、变量、调用栈和外设寄存器语义 |
-
 MCP 不是“调用 Keil 的协议”。AI 通过 MCP 调用 `McuBuddy`；`McuBuddy` 再根据任务使用
-Keil UV4、pyOCD、J-Link 或其他内部后端。
+Keil MDK（通过 `UV4.exe`）、pyOCD、J-Link 或其他内部后端。
 
 ## 🚀 快速开始
 
@@ -87,7 +70,8 @@ Keil UV4、pyOCD、J-Link 或其他内部后端。
 - 目标芯片名称；
 - 推荐准备带调试信息的 ELF/AXF。
 
-只有在使用 Keil 构建或下载功能时，才需要 Windows 和已安装的 Keil MDK / UV4。
+只有使用 Keil 构建或下载功能时，才需要 Windows 和已安装的 Keil MDK。McuBuddy 通过
+`UV4.exe` 调用 µVision，包括 Keil MDK v5 的安装环境。
 
 ### 2. 安装
 
@@ -148,72 +132,25 @@ read_stopped_context()
 `probe_connect` 和 `read_stopped_context` 均属于默认 `core` 配置档。读取稳定上下文时可能
 暂停目标，因此仍属于执行状态变化。如果设备不能被暂停，应先告诉 AI 只做非侵入式探针和环境检查。
 
-## 💬 AI 使用示例
-
-这些提示词可以直接交给已连接 `McuBuddy` 的 AI 助手。除非明确授权，否则默认只进行读取；
-复位、暂停、烧录或发送测试数据前，AI 应先说明影响并确认操作范围。
-
-### 检查开发板是否连接正常
+## 💬 自动化调试示例
 
 ```text
-使用 McuBuddy 检查 <具体型号> 开发板是否连接正常。调试器为
-<ST-Link/J-Link/CMSIS-DAP>。
-```
-
-### 检查通信是否正常
-
-```text
-使用 McuBuddy 调试 <固件工程路径> 下的 Keil 工程。MCU 型号为 <具体型号>，调试器为
-<ST-Link/J-Link/CMSIS-DAP>，检查 <USART1/SPI1/I²C1/CAN等> 通信，判断初始化、收发链路、
-协议处理和真实板卡通信是否存在问题。
-```
-
-### 开不了机或反复重启
-
-```text
-使用 McuBuddy 检查 <固件工程路径> 对应的开发板为什么开不了机、反复重启或运行后崩溃。
-```
-
-### 外设没有反应
-
-```text
-使用 McuBuddy 检查 <LED/电机/传感器等外设> 为什么没有反应，查看相关初始化和控制逻辑
-是否存在问题。
-```
-
-### 程序运行卡住
-
-```text
-使用 McuBuddy 检查程序为什么卡住、任务不运行或运行一段时间后停止。
+使用 McuBuddy 调试 <工程路径>。MCU 为 <具体型号>，探针为
+<ST-Link/J-Link/CMSIS-DAP>。先收集实机证据并定位问题；经授权后修改代码、编译和烧录，
+最后在真实开发板上验证结果。
 ```
 
 更多证据驱动的决策顺序和场景见
 [常见调试流程](PROJECT_GUIDE_zh.md#6-常见调试流程)。
 
-## 🧰 能力与后端支持
-
-### 能力分类
-
-| 类别 | 主要能力 |
-| --- | --- |
-| 探针与目标 | 探针发现、目标匹配、连接/断开、暂停/继续、复位、单步 |
-| CPU 与内存 | 核心/FPU/故障寄存器、内存读写、停止上下文、Flash 对比与校验 |
-| 断点与执行 | 硬件/软件断点、观察点、运行到函数或源码行、Step Over/Out |
-| 符号与源码 | ELF/AXF、DWARF、反汇编、函数与变量、源码定位、调用栈 |
-| 外设与 RTOS | CMSIS-SVD、外设字段、FreeRTOS 任务、任务上下文、栈检查 |
-| 日志与服务 | UART、RTT、部分 SWO、pyOCD/J-Link GDB Server |
-| 工程与诊断 | Keil 工程发现、构建/下载、HardFault、启动、时钟、中断和外设诊断 |
-
-完整工具名称、参数和返回值见 [Tool Reference](docs/tool-reference.md)。
-
-### 后端支持状态
+## 🧰 后端与硬件验证
 
 | 路径 | 当前定位 | 主要能力 |
 | --- | --- | --- |
 | pyOCD + ST-Link/CMSIS-DAP | 主要后端 | 控制、内存、Flash、源码调试、RTT、RTOS、GDB Server |
 | J-Link | 主要后端 | 控制、内存、Flash、源码调试、原生 RTT、DWT、GDB Server |
 | probe-rs sidecar | 扩展预览 | ARM/RISC-V/Xtensa 发现、可配置核心控制、寄存器、内存、硬件断点、Flash、RTT |
-| Keil UV4（Windows） | 构建/下载后端 | 工程发现、Target 配置、构建、日志、可选下载 |
+| Keil MDK（Windows，通过 `UV4.exe`） | 构建/下载后端 | 工程发现、Target 配置、构建、日志、可选下载；支持 MDK v5 安装环境 |
 
 已重点验证：
 
@@ -223,16 +160,6 @@ read_stopped_context()
 
 “代码已实现”不等于“所有板卡均已验证”。准确记录以
 [Support Matrix](docs/support-matrix.md) 和 `list_validation_records()` 为准。
-
-## 🔄 Keil MDK / UV4 工作流
-
-Keil 在本项目中承担工程构建、链接和可选的固件下载。`McuBuddy` 不替代 Keil 编译器，
-也不解析或重写工程构建规则；它负责发现工程、选择 Target、调用 UV4、读取日志与输出文件，
-并把结果接入后续自动化调试。
-
-`McuBuddy` 会根据任务查找 Keil 工程和输出文件、连接开发板并收集证据。涉及构建、下载或
-改变开发板运行状态时，会先说明影响。完整的工具调用和新工程接入方法见
-[项目指南](PROJECT_GUIDE_zh.md)。
 
 ## 🛡️ 安全模型
 
@@ -267,11 +194,8 @@ Keil 在本项目中承担工程构建、链接和可选的固件下载。`McuBu
 仓库包含 `skills/mcubuddy`，用于指导 Codex 和 Claude Code 按“先证据、后判断”的顺序使用
 这些工具，而不是把 MCP 工具当作无序命令列表。
 
-Skill 是可选的工作流增强，不是硬件调试的前置条件。只要本地 McuBuddy MCP 服务已经
-正确安装和配置，不安装 Skill 也应能够使用完整的硬件能力。若需要让 Skill 在 MCP
-不可用时重新发现源码目录，可先运行
-`McuBuddy home set C:\path\to\McuBuddy --confirm`；路径保存在用户级
-`.mcubuddy/installations.json`，不会写入 `SKILL.md`。
+Skill 是可选的工作流增强，不是硬件调试的前置条件。McuBuddy MCP 服务正确安装和配置后，
+即使不安装 Skill，也可以使用完整的硬件调试能力。
 
 安装到 Codex：
 
@@ -285,12 +209,13 @@ python .\skills\mcubuddy\scripts\install_skill.py --target codex --overwrite
 python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 ```
 
-安装完成后重启客户端或新建会话。详细说明见
+安装后重启客户端或新建会话。源码目录恢复、安装注册和使用边界详见
 [McuBuddy、MCP 与 Skill 的边界](PROJECT_GUIDE_zh.md#2-mcubuddymcp-与-skill-的边界)。
 
 ## ⚠️ 当前限制
 
-- Keil 构建和下载目前面向 Windows + Keil UV4。
+- Keil 构建和下载目前面向 Windows + Keil MDK，通过 `UV4.exe` 调用 µVision，包括
+  MDK v5 安装环境。
 - probe-rs sidecar 已覆盖 Flash 和 RTT，但仍需按目标芯片做真实板验证，且尚未提供正式发布二进制。
 - RTOS 检查依赖与目标固件匹配的 FreeRTOS 符号和 ELF/AXF。
 - SVD 文件不随所有芯片自动提供，通常需要来自 CMSIS-Pack 或芯片厂商。
@@ -305,6 +230,7 @@ python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 - MCP 工具中文用途：[MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - 后端与硬件验证：[Support Matrix](docs/support-matrix.md)
 - 项目架构：[Architecture](docs/architecture.md)
+- v0.5.2 发布摘要：[v0.5.2 Release Notes](docs/releases/v0.5.2.md)
 
 ## 🧪 本地开发
 
@@ -329,4 +255,5 @@ MIT License 授权的代码基础上扩展了架构、安全边界、证据工�
 ---
 
 如果 `McuBuddy` 对你的 MCU 调试工作有帮助，欢迎给项目一个 Star。
-如果你对 `McuBuddy`有什么好的想法也可以向`zhou229449@gmail.com`发送你的见解，感谢。
+如果你对 `McuBuddy` 有建议，欢迎提交 Issue，或发送邮件至
+[zhou229449@gmail.com](mailto:zhou229449@gmail.com)。
