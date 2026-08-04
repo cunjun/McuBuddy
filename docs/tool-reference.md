@@ -29,6 +29,7 @@ Core tools:
 - `svd_load`
 - `probe_connect`
 - `disconnect_all`
+- `finish_debug_session`
 - `probe_halt`
 - `probe_resume`
 - `probe_reset`
@@ -45,6 +46,7 @@ Core tools:
 - `configure_log`
 - `log_connect`
 - `uart_send`
+- `uart_send_with_cleanup`
 - `uart_read_bytes`
 - `uart_exchange`
 - `log_tail`
@@ -185,6 +187,7 @@ and programming must be enabled, and this persistent operation requires `confirm
 - `log_connect`
 - `log_disconnect`
 - `uart_send`
+- `uart_send_with_cleanup`
 - `uart_read_bytes`
 - `uart_exchange`
 - `log_tail`
@@ -197,6 +200,12 @@ and programming must be enabled, and this persistent operation requires `confirm
 `log_connect`. Use `data_format="hex"` for compact or whitespace-separated hexadecimal bytes,
 or `data_format="text"` for UTF-8 text. Because a UART command can change target behavior, the
 tool requires `confirm=True`.
+
+`uart_send_with_cleanup(data, data_format, cleanup_data, cleanup_data_format, confirm=False)`
+sends an actuator command only after validating its matching cleanup command. When the send succeeds,
+the cleanup bytes are registered for the current debug session and are sent in reverse registration
+order by `finish_debug_session`. Use this tool instead of raw `uart_send` for motors, relays, heaters,
+power switches, and other outputs that must not remain active after the task ends.
 
 `uart_read_bytes(timeout_ms=1000, max_bytes=4096, idle_timeout_ms=50)` reads raw UART bytes
 without line splitting or text decoding. It returns hexadecimal data, byte count, first/last-byte
@@ -239,6 +248,13 @@ RX evidence and requires `confirm=True` because it sends data to the target.
 - `stop_jlink_gdb_server`
 - `get_jlink_gdb_server_status`
 - `disconnect_all`
+- `finish_debug_session`
+
+`finish_debug_session()` runs every registered actuator cleanup, clears session breakpoints, resets
+the target into halt, resumes it, and then disconnects the probe, UART log, and GDB server. Cleanup is
+best-effort and idempotent: later steps still run after an earlier failure, and the result reports any
+final state that could not be confirmed. The MCP server invokes the same operation when its lifespan
+ends, but agents should call it explicitly before returning a final debugging conclusion.
 
 `start_gdb_server` binds to localhost by default. Remote binding requires both
 `allow_remote=True` and `confirm_remote=True` because the GDB server has no authentication.

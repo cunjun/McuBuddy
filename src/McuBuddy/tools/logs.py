@@ -34,6 +34,23 @@ def uart_send(
     }
 
 
+def uart_send_with_cleanup(
+    session: SessionState,
+    *,
+    data: str,
+    data_format: Literal["hex", "text"],
+    cleanup_data: str,
+    cleanup_data_format: Literal["hex", "text"],
+) -> dict:
+    cleanup_payload = _encode_uart_data(cleanup_data, cleanup_data_format)
+    result = uart_send(session, data=data, data_format=data_format)
+    session.pending_uart_cleanup.append(cleanup_payload)
+    session.debug_session_finish_result = None
+    result["cleanup_registered"] = True
+    result["cleanup_payload_hex"] = cleanup_payload.hex(" ")
+    return result
+
+
 def uart_read_bytes(
     session: SessionState,
     *,

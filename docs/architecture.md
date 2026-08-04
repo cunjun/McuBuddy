@@ -42,6 +42,11 @@ The execution boundary therefore holds the session lock until that worker finish
 the cancellation. Keep this invariant when adding new execution paths; releasing the lock early can
 allow a second command to mutate or disconnect a backend that is still in use.
 
+The FastMCP lifespan uses the same session lock before running `finish_debug_session`. Normal agent
+workflows call that tool explicitly; lifespan shutdown is the fallback for cancellation or client
+disconnect. The finalizer sends registered UART cleanup commands, clears breakpoints, resets and
+resumes the target, and then disconnects resources while continuing past individual cleanup errors.
+
 The execution wrapper preserves each registered function's name, signature, documentation, and MCP
 schema. New tools should continue to use the normal `@mcp.tool()` registration pattern rather than
 calling the execution boundary directly.

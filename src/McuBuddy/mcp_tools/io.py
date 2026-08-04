@@ -4,12 +4,14 @@ from typing import Literal
 
 from ..session import SessionState
 from ..tools.lifecycle import disconnect_all as _disconnect_all
+from ..tools.lifecycle import finish_debug_session as _finish_debug_session
 from ..tools.logs import connect_log as _connect_log
 from ..tools.logs import disconnect_log as _disconnect_log
 from ..tools.logs import tail_logs as _tail_logs
 from ..tools.logs import uart_exchange as _uart_exchange
 from ..tools.logs import uart_read_bytes as _uart_read_bytes
 from ..tools.logs import uart_send as _uart_send
+from ..tools.logs import uart_send_with_cleanup as _uart_send_with_cleanup
 
 
 def register_io_tools(mcp, session: SessionState) -> None:
@@ -32,6 +34,23 @@ def register_io_tools(mcp, session: SessionState) -> None:
         confirm: bool = False,
     ) -> dict:
         return _uart_send(session, data=data, data_format=data_format)
+
+    @mcp.tool()
+    async def uart_send_with_cleanup(
+        data: str,
+        data_format: Literal["hex", "text"],
+        cleanup_data: str,
+        cleanup_data_format: Literal["hex", "text"],
+        confirm: bool = False,
+    ) -> dict:
+        """Send an actuator command and register its matching safe-stop command."""
+        return _uart_send_with_cleanup(
+            session,
+            data=data,
+            data_format=data_format,
+            cleanup_data=cleanup_data,
+            cleanup_data_format=cleanup_data_format,
+        )
 
     @mcp.tool()
     async def uart_read_bytes(
@@ -71,3 +90,8 @@ def register_io_tools(mcp, session: SessionState) -> None:
     @mcp.tool()
     async def disconnect_all() -> dict:
         return _disconnect_all(session)
+
+    @mcp.tool()
+    async def finish_debug_session() -> dict:
+        """Stop registered actuators, reset and run the target, then disconnect."""
+        return _finish_debug_session(session)

@@ -68,6 +68,11 @@ class SessionToolRegistrar:
                 confirmed = bool(bound.arguments.get("confirm", False))
                 if blocked := require_tool_confirmation(callback.__name__, confirmed):
                     return blocked
+                if callback.__name__ != "finish_debug_session" and policy["level"] not in {
+                    "read-only",
+                    "persistent",
+                }:
+                    self._session.debug_session_finish_result = None
                 if policy["execution"] == "concurrent":
                     return await asyncio.to_thread(_run_callback, callback, args, kwargs)
                 return await _run_serialized(self._session, callback, args, kwargs)
