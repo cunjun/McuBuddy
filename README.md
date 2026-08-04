@@ -325,7 +325,6 @@ for details.
 - Chinese tool usage: [MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - Backend and hardware validation: [Support Matrix](docs/support-matrix.md)
 - Project design: [Architecture](docs/architecture.md)
-- v0.5.2 release summary: [v0.5.2 Release Notes](docs/releases/v0.5.2.md)
 
 ## 🧪 Local Development
 

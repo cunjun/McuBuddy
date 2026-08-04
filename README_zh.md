@@ -300,7 +300,6 @@ python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 - MCP 工具中文用途：[MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - 后端与硬件验证：[Support Matrix](docs/support-matrix.md)
 - 项目架构：[Architecture](docs/architecture.md)
-- v0.5.2 发布摘要：[v0.5.2 Release Notes](docs/releases/v0.5.2.md)
 
 ## 🧪 本地开发
 
