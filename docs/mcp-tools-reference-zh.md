@@ -1,6 +1,6 @@
 # McuBuddy MCP 工具中文参考
 
-本文档对应 `full` 配置实际注册的 116 个 MCP 工具。`core` 是默认向 AI 客户端公开的常用工具；`full-only` 只有在服务启动前设置
+本文档对应 `full` 配置实际注册的 118 个 MCP 工具。`core` 是默认向 AI 客户端公开的常用工具；`full-only` 只有在服务启动前设置
 `MCUBUDDY_TOOL_PROFILE=full` 才会公开。工具数量代表 MCP 接口数量，不等于独立底层能力数量。
 
 安全级别沿用 `src/McuBuddy/tool_safety.py`：
@@ -42,6 +42,7 @@
 | `configure_keil_project` | `core` | `session-changing` | `root`, `project_path`, `uv4_path`, `target_name` | 从工程路径或搜索根目录自动配置 Keil 构建和 ELF。 |
 | `connect_with_config` | `full-only` | `connection-changing` | 无 | 使用当前会话配置连接探针及相关调试资源。 |
 | `disconnect_all` | `core` | `connection-changing` | 无 | 关闭探针、日志和辅助服务等当前会话连接。 |
+| `finish_debug_session` | `core` | `execution-changing` | 无 | 执行已登记的执行器停止命令，清除断点，复位并恢复目标运行，然后断开调试资源。 |
 
 ## 探针发现、连接与执行控制
 
@@ -145,6 +146,7 @@
 | `log_disconnect` | `full-only` | `connection-changing` | 无 | 关闭当前UART日志连接。 |
 | `log_tail` | `core` | `read-only` | `line_count` | 返回日志缓冲区末尾的文本行。 |
 | `uart_send` | `core` | `state-changing` | `data`, `data_format`, `confirm` | 通过UART发送十六进制字节或UTF-8文本。 |
+| `uart_send_with_cleanup` | `core` | `state-changing` | `data`, `data_format`, `cleanup_data`, `cleanup_data_format`, `confirm` | 发送执行器控制命令，并为当前调试会话登记配套的安全停止命令。 |
 | `uart_read_bytes` | `core` | `read-only` | `timeout_ms`, `max_bytes`, `idle_timeout_ms` | 按总超时和空闲超时读取原始UART响应字节。 |
 | `uart_exchange` | `core` | `state-changing` | `data`, `data_format`, `timeout_ms`, `confirm` | 发送UART请求并在同一次调用中收集二进制响应证据。 |
 | `read_rtt_log` | `core` | `read-only` | `channel`, `max_bytes`, `search_start`, `search_size` | 通过探针从RAM中查找控制块并读取SEGGER RTT日志。 |
@@ -184,7 +186,7 @@
 
 ## 数量与缩减观察
 
-- 实际公开接口：116个。
+- 实际公开接口：118个。
 - 默认 `core`：43个。
 - `full-only`：73个。
 - 最适合合并的重复形态包括执行控制、断点/监视点、内存操作、SVD读写、日志通道、GDB生命周期及专项诊断。

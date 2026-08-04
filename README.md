@@ -188,6 +188,8 @@ Safety principles:
 2. Read evidence before halting, resetting, or writing.
 3. Before a Flash operation, confirm the target, scope, image, and recovery method.
 4. For motors, relays, power switches, and other actuators, prefer breakpoints and low-energy tests.
+5. Send actuator commands with `uart_send_with_cleanup`, then call `finish_debug_session` before
+   returning a final conclusion. Server shutdown repeats the same idempotent cleanup as a fallback.
 
 ## 🔒 Sessions and Concurrency
 

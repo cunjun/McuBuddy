@@ -47,6 +47,7 @@ For a board problem without requested commands:
 5. Call `read_stopped_context()` and matching evidence collector.
 6. Add ELF, SVD, logs, or RTOS context only when useful.
 7. Test a hypothesis with the smallest safe check, then verify.
+8. Call `finish_debug_session()` before concluding unless the user asks to preserve debug state.
 
 ## Profile Boundary
 
@@ -76,7 +77,8 @@ For a board problem without requested commands:
 - For flash: collect evidence, build, flash, compare ELF to flash, reset/halt, and re-check.
 - RTT memory scanning is bounded by `security.max_rtt_scan_size` or
   `MCUBUDDY_MAX_RTT_SCAN_SIZE`; do not bypass that guard.
-- For actuators, use short low-energy commands; prove firmware, bus, peripheral, and output.
+- For actuators, use low-energy `uart_send_with_cleanup(...)` calls with paired stop commands.
+- A `partial` finish is unconfirmed safety evidence; report each failed cleanup.
 
 ## Reporting Template
 

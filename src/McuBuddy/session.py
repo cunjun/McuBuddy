@@ -126,6 +126,8 @@ class SessionState:
     config: RuntimeConfig = field(default_factory=RuntimeConfig)
     memory_snapshots: dict[str, dict[str, Any]] = field(default_factory=dict)
     conditional_breakpoints: dict[int, dict[str, Any]] = field(default_factory=dict)
+    pending_uart_cleanup: list[bytes] = field(default_factory=list)
+    debug_session_finish_result: dict[str, Any] | None = None
     execution_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
 
 
