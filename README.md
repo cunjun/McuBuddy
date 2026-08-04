@@ -23,9 +23,15 @@ McuBuddy v0.5.2 starts with a focused `core` MCP tool profile by default. Set
 from earlier alpha releases.
 
 > [!IMPORTANT]
-> This project is still in Alpha. Humans remain responsible for goals, wiring, and risk decisions;
-> AI calls tools, organizes evidence, and advances the debugging process. Before resets, execution
-> control, memory writes, or Flash operations, confirm the target, impact, and recovery plan.
+> Together with AI clients such as Codex, McuBuddy supports a closed-loop workflow covering
+> board-level evidence collection, diagnosis, code modification, build, firmware download,
+> execution, and validation on validated hardware and toolchain combinations.
+>
+> Humans remain responsible for defining goals and acceptance criteria, wiring and power safety,
+> authorizing operations that change execution or persistent state, reviewing code changes, and
+> validating new MCU, probe, RTOS, and build-environment combinations. Motors, relays, production
+> devices, and other safety-critical systems also require recovery plans and independent safety
+> protection.
 
 **Documentation:** [Project Guide](PROJECT_GUIDE.md) ·
 [Tool Reference](docs/tool-reference.md) ·
