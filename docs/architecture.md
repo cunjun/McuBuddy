@@ -25,6 +25,21 @@ Do not add tool implementations or long registration blocks there.
 Registration modules should be thin wrappers. They translate MCP parameters into calls to
 domain tools and should not contain hardware logic.
 
+### Tool catalog and toolsets
+
+`src/McuBuddy/tool_profiles.py` builds the immutable `TOOL_CATALOG` from explicitly declared tool
+policies. Every entry carries its safety level, stability, default visibility, and toolsets such as
+`probe`, `diagnostics`, `build_flash`, `rtos`, or `logs`.
+
+Both `core` and `full` are explicit allowlists derived from that catalog. `full` does not mean
+"register every decorated Python function": a new `@mcp.tool()` callback remains hidden until it
+has an explicit policy and therefore enters the governed catalog. Keep this fail-closed invariant
+when adding registration paths.
+
+Use toolsets to describe ownership and future selective exposure; use profiles as startup presets.
+Do not create a new top-level MCP tool for an internal helper or backend-specific implementation.
+A public tool should represent a distinct user intent or safety boundary with a stable schema.
+
 ## MCP Execution Boundary
 
 `src/McuBuddy/mcp_execution.py` wraps every registered MCP tool before FastMCP exposes it.
@@ -48,8 +63,8 @@ disconnect. The finalizer sends registered UART cleanup commands, clears breakpo
 resumes the target, and then disconnects resources while continuing past individual cleanup errors.
 
 The execution wrapper preserves each registered function's name, signature, documentation, and MCP
-schema. New tools should continue to use the normal `@mcp.tool()` registration pattern rather than
-calling the execution boundary directly.
+schema. New public tools should continue to use the normal `@mcp.tool()` registration pattern and
+must also enter the governed catalog rather than calling the execution boundary directly.
 
 ## Domain Tools
 

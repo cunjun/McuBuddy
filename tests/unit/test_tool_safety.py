@@ -135,8 +135,7 @@ def test_every_confirmation_required_mcp_tool_exposes_confirm_parameter() -> Non
     missing = {
         name
         for name in TOOL_SAFETY
-        if get_tool_safety(name)["requires_confirmation"]
-        and "confirm" not in tool_parameters[name]
+        if get_tool_safety(name)["requires_confirmation"] and "confirm" not in tool_parameters[name]
     }
 
     assert missing == set()
@@ -150,6 +149,9 @@ def test_list_tool_safety_is_machine_readable() -> None:
     assert result["safety_levels"]["persistent-destructive"]["requires_confirmation"] is True
     assert "erase_flash" in result["tools"]
     assert result["tools"]["erase_flash"]["level"] == "persistent-destructive"
+    assert result["tools"]["erase_flash"]["stability"] == "preview"
+    assert "build_flash" in result["tools"]["erase_flash"]["toolsets"]
+    assert result["tools"]["doctor"]["default_enabled"] is True
     assert set(TOOL_SAFETY).issuperset({"doctor", "first_contact", "board_smoke_test"})
 
 

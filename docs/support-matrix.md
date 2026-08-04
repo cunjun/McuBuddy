@@ -11,11 +11,15 @@ page as the human-readable summary.
 | Profile | Startup selection | Intended use | Validation status |
 |---------|-------------------|--------------|-------------------|
 | `core` | Default, or `MCUBUDDY_TOOL_PROFILE=core` | Common bring-up, structured evidence packages, peripheral/RTOS/log inspection, and build/flash/verify loops | Contract covered by automated tests; real-board profile comparison still needs a hardware run |
-| `full` | `MCUBUDDY_TOOL_PROFILE=full` | Complete expert catalog, including low-level writes, advanced stepping, GDB server lifecycle, legacy diagnosis, and experimental trace paths | Preserves the v0.5.x catalog plus evidence package tools |
+| `full` | `MCUBUDDY_TOOL_PROFILE=full` | Explicit expert catalog, including low-level writes, advanced stepping, GDB server lifecycle, legacy diagnosis, and preview trace paths | Preserves the governed v0.5.x catalog plus evidence package tools |
 
 The active profile is fixed when the MCP server starts. `list_tool_safety()` reports only visible
 tools by default; `list_tool_safety(include_hidden=true)` exposes safety metadata for the complete
 catalog without changing the active MCP session.
+
+The catalog is fail-closed: adding a decorated callback does not expose it in either profile until
+the tool has an explicit policy and catalog entry. Catalog metadata also reports the toolsets,
+stability, and default visibility used to govern future profile composition.
 
 Runtime configuration applies defaults, TOML, environment variables, then CLI overrides. Memory,
 flash, file-path, and RTT scan limits are enforced before backend calls; a supported backend does

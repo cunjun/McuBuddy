@@ -7,7 +7,7 @@ scenario guidance in the [Project Guide](../PROJECT_GUIDE.md), and capability st
 ## Tool Profiles
 
 McuBuddy v0.5.2 exposes the `core` profile by default. Set `MCUBUDDY_TOOL_PROFILE=full` at server
-startup to expose the complete expert catalog. The active profile is fixed for the lifetime of the
+startup to expose the explicitly governed expert catalog. The active profile is fixed for the lifetime of the
 MCP server process.
 
 Core tools:

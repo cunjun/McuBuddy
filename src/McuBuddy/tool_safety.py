@@ -183,14 +183,23 @@ TOOL_SAFETY = TOOL_POLICIES
 
 
 def get_tool_safety(tool_name: str) -> dict[str, Any]:
-    entry = dict(
-        TOOL_POLICIES.get(tool_name, {"level": "unknown", "execution": "serialized"})
-    )
+    entry = dict(TOOL_POLICIES.get(tool_name, {"level": "unknown", "execution": "serialized"}))
     level_info = SAFETY_LEVELS.get(
         entry["level"],
         {"summary": "No safety metadata is registered.", "requires_confirmation": True},
     )
     entry.update(level_info)
+    # Import lazily because tool_profiles builds its catalog from TOOL_POLICIES.
+    from .tool_profiles import TOOL_CATALOG
+
+    if spec := TOOL_CATALOG.get(tool_name):
+        entry.update(
+            {
+                "toolsets": sorted(spec.toolsets),
+                "stability": spec.stability,
+                "default_enabled": spec.default_enabled,
+            }
+        )
     return entry
 
 
@@ -198,15 +207,14 @@ def require_tool_confirmation(tool_name: str, confirmed: bool) -> dict[str, Any]
     safety = get_tool_safety(tool_name)
     if confirmed or not safety["requires_confirmation"]:
         return None
-    summary = (
-        f"{tool_name} is a {safety['level']} operation and requires explicit confirmation."
-    )
+    summary = f"{tool_name} is a {safety['level']} operation and requires explicit confirmation."
     return {
         "status": "error",
         "summary": summary,
         "safety": safety,
         "next_tools": ["list_tool_safety"],
     }
+
 
 def list_tool_safety(
     *,
