@@ -119,7 +119,7 @@ def test_jlink_backend_read_cycle_counter_does_not_rewrite_when_enabled(monkeypa
 
 
 def test_read_cycle_counter_reports_unsupported_backend() -> None:
-    session = SimpleNamespace(probe=SimpleNamespace())
+    session = SimpleNamespace(services=SimpleNamespace(probe=SimpleNamespace()))
 
     result = read_cycle_counter(session)
 
@@ -175,7 +175,7 @@ def test_jlink_backend_read_swo_log_reconfigures_when_parameters_change(monkeypa
 
 
 def test_read_swo_log_reports_unsupported_backend() -> None:
-    session = SimpleNamespace(probe=SimpleNamespace())
+    session = SimpleNamespace(services=SimpleNamespace(probe=SimpleNamespace()))
 
     result = read_swo_log(session, cpu_speed_hz=72000000, swo_speed_hz=2000000)
 
@@ -212,7 +212,7 @@ def test_jlink_backend_read_itm_trace_reads_specific_port(monkeypatch) -> None:
 
 
 def test_read_itm_trace_reports_unsupported_backend() -> None:
-    session = SimpleNamespace(probe=SimpleNamespace())
+    session = SimpleNamespace(services=SimpleNamespace(probe=SimpleNamespace()))
 
     result = read_itm_trace(
         session,

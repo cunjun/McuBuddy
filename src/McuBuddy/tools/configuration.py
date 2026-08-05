@@ -133,7 +133,7 @@ def configure_probe(
     if next_backend == "probe-rs" and probe_rs_sidecar_path is not None:
         recreate_probe = True
 
-    candidate_probe = session.probe
+    candidate_probe = session.services.probe
     if recreate_probe:
         try:
             candidate_probe = create_probe_backend(
@@ -170,7 +170,7 @@ def configure_probe(
 
     if recreate_probe:
         try:
-            disconnect_result = session.probe.disconnect()
+            disconnect_result = session.services.probe.disconnect()
             if disconnect_result.get("status") == "error":
                 raise RuntimeError(disconnect_result.get("summary", "disconnect failed"))
         except Exception as exc:
@@ -182,7 +182,7 @@ def configure_probe(
                 "status": "error",
                 "summary": f"Could not disconnect the current probe backend: {exc}",
             }
-        session.probe = candidate_probe
+        session.services.probe = candidate_probe
 
     session.config.probe = next_config
     result = {
@@ -303,7 +303,7 @@ def connect_with_config(session: SessionState) -> dict:
         missing.append("log.port")
     else:
         try:
-            results["log"] = session.log.connect(
+            results["log"] = session.services.log.connect(
                 port=uart_port,
                 baudrate=session.config.log.baudrate,
             )
@@ -314,7 +314,7 @@ def connect_with_config(session: SessionState) -> dict:
         missing.append("elf.path")
     else:
         try:
-            results["elf"] = session.elf.load(elf_path)
+            results["elf"] = session.services.elf.load(elf_path)
         except Exception as exc:
             errors["elf"] = str(exc)
 

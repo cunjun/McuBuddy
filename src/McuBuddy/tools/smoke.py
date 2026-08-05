@@ -151,7 +151,7 @@ def board_smoke_test(
     )
 
     if load_elf and session.config.elf.path:
-        _capture("elf_load", lambda: session.elf.load(session.config.elf.path), steps, errors)
+        _capture("elf_load", lambda: session.services.elf.load(session.config.elf.path), steps, errors)
 
     resolved_target = target or session.config.probe.target
     resolved_unique_id = unique_id or session.config.probe.unique_id
@@ -189,7 +189,7 @@ def board_smoke_test(
             )
 
     if disconnect_after:
-        _capture("probe_disconnect", lambda: session.probe.disconnect(), steps, errors)
+        _capture("probe_disconnect", lambda: session.services.probe.disconnect(), steps, errors)
 
     status = "ok" if not errors else "partial"
     probe_count = len(probes.get("probes", [])) if isinstance(probes, dict) else 0
@@ -239,7 +239,7 @@ def _capture_without_steps(fn: Callable[[], Any]) -> dict[str, Any]:
 
 
 def _read_vector_table(session: SessionState, address: int, word_count: int) -> dict:
-    raw = session.probe.read_memory(address, max(0, word_count) * 4)
+    raw = session.services.probe.read_memory(address, max(0, word_count) * 4)
     words = [int.from_bytes(raw[index : index + 4], "little") for index in range(0, len(raw), 4)]
     labels = ["initial_sp", "reset_handler", "nmi_handler", "hardfault_handler"]
     decoded = {

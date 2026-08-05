@@ -223,3 +223,7 @@ class ProbeBackend(ABC):
 
     def set_pack_paths(self, pack_paths: list[str]) -> None:
         """Accept optional CMSIS-Pack paths when the backend supports them."""
+
+    def get_memory_regions(self) -> list[dict[str, Any]]:
+        """Return known target memory regions using end-exclusive addresses."""
+        return []

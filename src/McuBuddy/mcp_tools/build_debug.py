@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..mcp_execution import SessionToolRegistrar
+from ..mcp_execution import require_session_tool_registrar
 from ..session import SessionState
 from ..tools.build import build_project as _build_project
 from ..tools.build import flash_firmware as _flash_firmware
@@ -11,16 +13,17 @@ from ..tools.gdb_server import stop_gdb_server as _stop_gdb_server
 from ..tools.gdb_server import stop_jlink_gdb_server as _stop_jlink_gdb_server
 
 
-def register_build_debug_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_build_debug_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def build_project(timeout_seconds: int = 120) -> dict:
         return _build_project(session, timeout_seconds=timeout_seconds)
 
-    @mcp.tool()
+    @registrar.tool()
     async def flash_firmware(timeout_seconds: int = 120, confirm: bool = False) -> dict:
         return _flash_firmware(session, timeout_seconds=timeout_seconds, confirm=confirm)
 
-    @mcp.tool()
+    @registrar.tool()
     async def start_gdb_server(
         port: int = 3333,
         telnet_port: int = 4444,
@@ -51,17 +54,17 @@ def register_build_debug_tools(mcp, session: SessionState) -> None:
             elf_path=elf_path,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def stop_gdb_server(timeout_seconds: float = 5.0) -> dict:
         """Stop the active pyOCD GDB server process if one is running."""
         return _stop_gdb_server(session, timeout_seconds=timeout_seconds)
 
-    @mcp.tool()
+    @registrar.tool()
     async def get_gdb_server_status() -> dict:
         """Return whether the pyOCD GDB server is running and which ports it uses."""
         return _get_gdb_server_status(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def start_jlink_gdb_server(
         target: str | None = None,
         serial_no: str | None = None,
@@ -86,12 +89,12 @@ def register_build_debug_tools(mcp, session: SessionState) -> None:
             exe_path=exe_path,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def stop_jlink_gdb_server(timeout_seconds: float = 5.0) -> dict:
         """Stop the active J-Link GDB server process if one is running."""
         return _stop_jlink_gdb_server(session, timeout_seconds=timeout_seconds)
 
-    @mcp.tool()
+    @registrar.tool()
     async def get_jlink_gdb_server_status() -> dict:
         """Return whether the J-Link GDB server is running and which port it uses."""
         return _get_jlink_gdb_server_status(session)

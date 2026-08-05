@@ -17,7 +17,7 @@ def diagnose_interrupt_issue(session: SessionState) -> dict[str, Any]:
         }
 
     try:
-        raw = session.probe.read_memory(0xE000ED04, 4)
+        raw = session.services.probe.read_memory(0xE000ED04, 4)
         icsr = int.from_bytes(raw, "little")
     except Exception as exc:
         return {"status": "error", "summary": f"Failed to read SCB_ICSR (0xE000ED04): {exc}"}
@@ -79,7 +79,7 @@ def _collect_nvic_irq_numbers(session: SessionState, base_address: int) -> list[
     register_values: list[int] = []
     for register_index in range(8):
         addr = base_address + (register_index * 4)
-        raw = session.probe.read_memory(addr, 4)
+        raw = session.services.probe.read_memory(addr, 4)
         register_values.append(int.from_bytes(raw, "little"))
 
     irq_numbers: list[int] = []

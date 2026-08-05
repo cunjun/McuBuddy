@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from ...mcp_execution import SessionToolRegistrar
+from ...mcp_execution import require_session_tool_registrar
 from ...session import SessionState
 from ...tools import probe as probe_tools
 
 
-def register_probe_trace_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_probe_trace_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def log_trace(max_steps: int = 200, max_lines: int = 50) -> dict:
         """Step through code and record each unique source line visited.
 
@@ -16,7 +19,7 @@ def register_probe_trace_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.log_trace(session, max_steps=max_steps, max_lines=max_lines)
 
-    @mcp.tool()
+    @registrar.tool()
     async def reset_and_trace(max_steps: int = 200, max_lines: int = 50) -> dict:
         """Reset the target and immediately trace execution from the reset vector.
 

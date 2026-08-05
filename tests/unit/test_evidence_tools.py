@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from McuBuddy.session import SessionServices
 from McuBuddy.session import SessionState
 from McuBuddy.tools.evidence import (
     collect_crash_evidence,
@@ -66,7 +67,7 @@ class _Elf:
 
 
 def test_crash_evidence_reports_missing_probe_prerequisite() -> None:
-    session = SessionState(probe=_DisconnectedProbe())
+    session = SessionState(services=SessionServices(probe=_DisconnectedProbe()))
 
     result = collect_crash_evidence(session)
 
@@ -77,7 +78,9 @@ def test_crash_evidence_reports_missing_probe_prerequisite() -> None:
 
 
 def test_crash_evidence_collects_context_and_stack_snapshot() -> None:
-    session = SessionState(probe=_ConnectedProbe(), log=_Log(), elf=_Elf())
+    session = SessionState(
+        services=SessionServices(probe=_ConnectedProbe(), log=_Log(), elf=_Elf())
+    )
 
     result = collect_crash_evidence(session, stack_snapshot_bytes=4)
 
@@ -91,7 +94,7 @@ def test_crash_evidence_collects_context_and_stack_snapshot() -> None:
 
 
 def test_peripheral_evidence_allows_partial_success() -> None:
-    session = SessionState(probe=_ConnectedProbe(), svd=_Svd())
+    session = SessionState(services=SessionServices(probe=_ConnectedProbe(), svd=_Svd()))
 
     result = collect_peripheral_evidence(session, peripheral="USART2")
 
@@ -101,7 +104,7 @@ def test_peripheral_evidence_allows_partial_success() -> None:
 
 
 def test_rtos_evidence_reports_unavailable_without_fake_diagnosis() -> None:
-    session = SessionState(probe=_ConnectedProbe(), elf=_Elf())
+    session = SessionState(services=SessionServices(probe=_ConnectedProbe(), elf=_Elf()))
 
     result = collect_rtos_evidence(session)
 

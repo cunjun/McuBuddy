@@ -679,3 +679,18 @@ class PyOcdProbeBackend(ProbeBackend):
                     return region.flash
 
         raise BackendUnavailableError("flash programming is not available for this target")
+
+    def get_memory_regions(self) -> list[dict[str, Any]]:
+        self._require_target()
+        memory_map = getattr(self._target, "memory_map", None)
+        if memory_map is None:
+            return []
+        regions: list[dict[str, Any]] = []
+        for region in memory_map:
+            start = int(getattr(region, "start"))
+            end = int(getattr(region, "end")) + 1
+            kind = "ram" if getattr(region, "is_ram", False) else (
+                "flash" if getattr(region, "is_flash", False) else "other"
+            )
+            regions.append({"start": start, "end": end, "kind": kind})
+        return regions

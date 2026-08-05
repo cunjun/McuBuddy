@@ -25,7 +25,7 @@ def rtos_task_context(
     If the named task is currently running, returns live registers instead.
     Requires ELF loaded and probe connected.
     """
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
     try:
         tcb_addrs, current_tcb = _collect_freertos_tcb_states(
@@ -56,9 +56,9 @@ def rtos_task_context(
     # --- running task: return live registers ---
     if target_tcb == current_tcb:
         try:
-            core = session.probe.read_core_registers()
+            core = session.services.probe.read_core_registers()
             regs = {k: hex(v) for k, v in core.items()}
-            resolved = session.elf.resolve_address(core["pc"] & ~1)
+            resolved = session.services.elf.resolve_address(core["pc"] & ~1)
             return {
                 "status": "ok",
                 "summary": f"Task '{task_name}' is currently running; live registers returned.",
@@ -125,7 +125,7 @@ def rtos_task_context(
     except Exception as e:
         return {"status": "error", "summary": f"Failed to parse context frame: {e}"}
 
-    resolved = session.elf.resolve_address(pc)
+    resolved = session.services.elf.resolve_address(pc)
     return {
         "status": "ok",
         "summary": f"Parsed saved context for task '{task_name}': PC={hex(pc)} ({resolved.get('symbol') or 'unknown'}).",

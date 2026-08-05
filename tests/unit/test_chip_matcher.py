@@ -69,6 +69,7 @@ def test_connect_probe_applies_backend_specific_match() -> None:
             get_state=_get_state,
         ),
     )
+    session.services = SimpleNamespace(probe=session.probe)
 
     result = connect_probe(session, target="STM32F103C8T6", unique_id="240710115")
 

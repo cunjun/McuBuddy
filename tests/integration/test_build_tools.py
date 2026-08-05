@@ -33,26 +33,26 @@ def test_build_project_uses_runtime_config() -> None:
     session.config.build.project_path = r"d:\demo\app.uvprojx"
     session.config.build.target_name = "demo_target"
     session.config.elf.path = r"d:\demo\app.axf"
-    session.build = _FakeBuildRuntime()
+    session.services.build = _FakeBuildRuntime()
 
     result = build_project(session, timeout_seconds=33)
 
     assert result["status"] == "ok"
-    assert session.build.calls[0][0] == "build"
-    assert session.build.calls[0][1].target_name == "demo_target"
-    assert session.build.calls[0][2].path == r"d:\demo\app.axf"
-    assert session.build.calls[0][3] == 33
+    assert session.services.build.calls[0][0] == "build"
+    assert session.services.build.calls[0][1].target_name == "demo_target"
+    assert session.services.build.calls[0][2].path == r"d:\demo\app.axf"
+    assert session.services.build.calls[0][3] == 33
 
 
 def test_flash_firmware_requires_confirmation_before_runtime_call() -> None:
     session = SessionState()
-    session.build = _FakeBuildRuntime()
+    session.services.build = _FakeBuildRuntime()
 
     result = flash_firmware(session, timeout_seconds=44)
 
     assert result["status"] == "error"
     assert result["safety"]["requires_confirmation"] is True
-    assert session.build.calls == []
+    assert session.services.build.calls == []
 
 
 def test_flash_firmware_uses_runtime_config_when_confirmed() -> None:
@@ -61,15 +61,15 @@ def test_flash_firmware_uses_runtime_config_when_confirmed() -> None:
     session.config.build.project_path = r"d:\demo\app.uvprojx"
     session.config.build.target_name = "demo_target"
     session.config.elf.path = r"d:\demo\app.axf"
-    session.build = _FakeBuildRuntime()
+    session.services.build = _FakeBuildRuntime()
 
     result = flash_firmware(session, timeout_seconds=44, confirm=True)
 
     assert result["status"] == "ok"
-    assert session.build.calls[0][0] == "flash"
-    assert session.build.calls[0][1].project_path == r"d:\demo\app.uvprojx"
-    assert session.build.calls[0][2].path == r"d:\demo\app.axf"
-    assert session.build.calls[0][3] == 44
+    assert session.services.build.calls[0][0] == "flash"
+    assert session.services.build.calls[0][1].project_path == r"d:\demo\app.uvprojx"
+    assert session.services.build.calls[0][2].path == r"d:\demo\app.axf"
+    assert session.services.build.calls[0][3] == 44
 
 
 def test_keil_build_runtime_collects_firmware_info(tmp_path: Path) -> None:

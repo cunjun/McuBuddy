@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from ...mcp_execution import SessionToolRegistrar
+from ...mcp_execution import require_session_tool_registrar
 from ...session import SessionState
 from ...tools import probe as probe_tools
 
 
-def register_probe_source_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_probe_source_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def elf_addr_to_source(address: int) -> dict:
         """Look up the source file and line number for a given address using DWARF .debug_line.
 
@@ -15,7 +18,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.addr_to_source(session, address=address)
 
-    @mcp.tool()
+    @registrar.tool()
     async def source_step() -> dict:
         """Execute instructions until the source line changes (source-level single step).
 
@@ -25,7 +28,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.source_step(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def disassemble(address: int, count: int = 10) -> dict:
         """Disassemble Thumb/Thumb-2 instructions at the given address.
 
@@ -36,7 +39,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.disassemble(session, address=address, count=count)
 
-    @mcp.tool()
+    @registrar.tool()
     async def get_locals() -> dict:
         """Read local variables and parameters at the current PC using DWARF .debug_info.
 
@@ -47,7 +50,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.get_locals(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def set_local(name: str, value: int, confirm: bool = False) -> dict:
         """Write an integer value to a local variable by name at the current PC.
 
@@ -59,7 +62,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.set_local(session, name=name, value=value, confirm=confirm)
 
-    @mcp.tool()
+    @registrar.tool()
     async def run_to_source(file: str, line: int, timeout_seconds: float = 10.0) -> dict:
         """Run target until execution reaches a specific source file and line number.
 
@@ -73,7 +76,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
             session, file=file, line=line, timeout_seconds=timeout_seconds
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def run_to_function(name: str, timeout_seconds: float = 10.0) -> dict:
         """Set a breakpoint on a function by name, resume, and wait for it to be hit.
 
@@ -84,7 +87,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.run_to_function(session, name=name, timeout_seconds=timeout_seconds)
 
-    @mcp.tool()
+    @registrar.tool()
     async def dwarf_backtrace(max_frames: int = 16) -> dict:
         """Accurate call stack using DWARF .debug_frame CFI rules.
 
@@ -96,7 +99,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.dwarf_backtrace(session, max_frames=max_frames)
 
-    @mcp.tool()
+    @registrar.tool()
     async def backtrace(max_frames: int = 20, stack_scan_words: int = 64) -> dict:
         """Heuristic call stack reconstruction for Cortex-M targets.
 
@@ -110,7 +113,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
             session, max_frames=max_frames, stack_scan_words=stack_scan_words
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def step_out(timeout_seconds: float = 5.0) -> dict:
         """Run until the current function returns (step out).
 
@@ -119,7 +122,7 @@ def register_probe_source_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.step_out(session, timeout_seconds=timeout_seconds)
 
-    @mcp.tool()
+    @registrar.tool()
     async def step_over() -> dict:
         """Execute one source line, stepping OVER function calls (bl/blx).
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..mcp_execution import SessionToolRegistrar
+from ..mcp_execution import require_session_tool_registrar
 from ..session import SessionState
 from ..pack_manager import diagnose_pack as _diagnose_pack
 from ..pack_manager import install_pack as _install_pack
@@ -27,12 +29,13 @@ from ..tools.smoke import doctor as _doctor
 from ..tools.smoke import first_contact as _first_contact
 
 
-def register_runtime_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_runtime_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def get_runtime_config() -> dict:
         return _get_runtime_config(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def inspect_project_memory(
         target_root: str,
         current_root: str | None = None,
@@ -45,7 +48,7 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             max_depth=max_depth,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def write_project_memory(
         target_root: str,
         content: str,
@@ -63,50 +66,51 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             allow_mcubuddy_target=allow_mcubuddy_target,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def list_demo_profiles() -> dict:
         return _list_demo_profiles()
 
-    @mcp.tool()
+    @registrar.tool()
     async def load_demo_profile(profile_name: str) -> dict:
         return _load_demo_profile(session, profile_name=profile_name)
 
-    @mcp.tool()
+    @registrar.tool()
     async def match_chip_name(target: str, backend: str = "pyocd") -> dict:
         """Resolve a chip alias to a backend-specific target name."""
         return _match_chip_name(target=target, backend=backend)
 
-    @mcp.tool()
+    @registrar.tool()
     async def get_target_info(target: str, backend: str = "pyocd") -> dict:
         """Return alias-match and device-patch info for a target on a given backend."""
         return _get_target_info(target=target, backend=backend)
 
-    @mcp.tool()
+    @registrar.tool()
     async def list_supported_targets(backend: str | None = None) -> dict:
         """List built-in target profiles and validation metadata for a backend."""
         return _list_supported_targets(backend=backend)
 
-    @mcp.tool()
+    @registrar.tool()
     async def list_tool_safety(include_hidden: bool = False) -> dict:
         """List safety levels for public McuBuddy tools."""
-        profile = mcp.active_tool_profile
+        profile = registrar.active_tool_profile
         return _list_tool_safety(
             active_profile=profile.name,
+            selected_toolsets=profile.selected_toolsets,
             enabled_tool_names=profile.enabled_tool_names,
             include_hidden=include_hidden,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def list_validation_records() -> dict:
         """List machine-readable real-hardware validation records."""
         return _list_validation_records()
 
-    @mcp.tool()
+    @registrar.tool()
     async def pack_diagnose(target: str, search_roots: list[str] | None = None) -> dict:
         """Find and checksum-verify the managed CMSIS-Pack for a target."""
         return _diagnose_pack(target, search_roots=search_roots)
 
-    @mcp.tool()
+    @registrar.tool()
     async def pack_install(
         target: str,
         destination: str = "packs",
@@ -119,7 +123,7 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def configure_probe(
         target: str | None = None,
         unique_id: str | None = None,
@@ -151,17 +155,17 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             connect_attempts=connect_attempts,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def configure_log(uart_port: str | None = None, uart_baudrate: int | None = None) -> dict:
         """Set UART log channel parameters (e.g. uart_port='COM5', uart_baudrate=115200)."""
         return _configure_log(session, uart_port=uart_port, uart_baudrate=uart_baudrate)
 
-    @mcp.tool()
+    @registrar.tool()
     async def configure_elf(elf_path: str) -> dict:
         """Set the ELF/AXF file path for symbol resolution."""
         return _configure_elf(session, elf_path=elf_path)
 
-    @mcp.tool()
+    @registrar.tool()
     async def configure_build(
         uv4_path: str | None = None,
         project_path: str | None = None,
@@ -179,12 +183,12 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             flash_log_path=flash_log_path,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def discover_keil_projects(root: str, max_depth: int = 6) -> dict:
         """Find Keil project files, targets, and likely AXF/ELF outputs under a directory."""
         return _discover_keil_projects(root=root, max_depth=max_depth)
 
-    @mcp.tool()
+    @registrar.tool()
     async def configure_keil_project(
         root: str | None = None,
         project_path: str | None = None,
@@ -206,16 +210,16 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             flash_log_path=flash_log_path,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def connect_with_config() -> dict:
         return _connect_with_config(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def doctor() -> dict:
         """Run a read-only environment, dependency, probe, target, and config preflight."""
         return _doctor(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def board_smoke_test(
         target: str | None = None,
         unique_id: str | None = None,
@@ -239,7 +243,7 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             disconnect_after=disconnect_after,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def first_contact(
         target: str,
         backend: str = "pyocd",
@@ -261,7 +265,7 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
             disconnect_after=disconnect_after,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def run_debug_loop(
         issue_description: str,
         profile_name: str | None = None,

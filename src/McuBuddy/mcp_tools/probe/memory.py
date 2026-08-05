@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from typing import Literal
 
+from ...mcp_execution import SessionToolRegistrar
+from ...mcp_execution import require_session_tool_registrar
 from ...session import SessionState
 from ...tools import probe as probe_tools
 
 
-def register_probe_memory_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_probe_memory_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def erase_flash(
         start_address: int | None = None,
         end_address: int | None = None,
@@ -27,7 +30,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def program_flash(
         address: int,
         data: list[int],
@@ -49,7 +52,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def flash_image(
         path: str,
         address: int,
@@ -74,7 +77,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def verify_flash(
         address: int,
         data: list[int],
@@ -87,12 +90,12 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.verify_flash(session, address=address, data=data)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_write_memory(address: int, data: list[int], confirm: bool = False) -> dict:
         """Write bytes to target memory. data is a list of integers (0-255)."""
         return probe_tools.write_memory(session, address=address, data=data, confirm=confirm)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_read_memory(address: int, size: int) -> dict:
         """Read bytes from target memory at the given address.
 
@@ -102,7 +105,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.read_memory(session, address=address, size=size)
 
-    @mcp.tool()
+    @registrar.tool()
     async def dump_memory(
         address: int,
         size: int = 64,
@@ -127,7 +130,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
             session, address=address, size=size, format=format, columns=columns
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def memory_find(
         address: int, size: int, pattern: list[int], max_results: int = 16
     ) -> dict:
@@ -143,7 +146,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
             session, address=address, size=size, pattern=pattern, max_results=max_results
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def step_n_instructions(count: int = 10) -> dict:
         """Execute count assembly instructions, recording PC and symbol at each step.
 
@@ -154,7 +157,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.step_n_instructions(session, count=count)
 
-    @mcp.tool()
+    @registrar.tool()
     async def read_memory_map() -> dict:
         """Return the Cortex-M address space layout and ELF section map.
 
@@ -164,7 +167,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.read_memory_map(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def compare_elf_to_flash() -> dict:
         """Compare all loadable ELF sections against actual target memory.
 
@@ -175,7 +178,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.compare_elf_to_flash(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def memory_snapshot(address: int, size: int, label: str = "default") -> dict:
         """Capture a memory region snapshot for later comparison.
 
@@ -185,7 +188,7 @@ def register_probe_memory_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.memory_snapshot(session, address=address, size=size, label=label)
 
-    @mcp.tool()
+    @registrar.tool()
     async def memory_diff(label: str = "default") -> dict:
         """Re-read a snapshotted memory region and return a byte-level diff.
 

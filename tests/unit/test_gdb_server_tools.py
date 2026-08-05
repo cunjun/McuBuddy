@@ -46,7 +46,11 @@ def test_start_gdb_server_uses_session_defaults() -> None:
     calls: list[dict] = []
     session = SimpleNamespace(
         config=SimpleNamespace(
-            probe=SimpleNamespace(target="stm32l496vetx", unique_id="1234"),
+            probe=SimpleNamespace(
+                target="stm32l496vetx",
+                unique_id="1234",
+                pack_paths=["D:/packs/vendor.pack"],
+            ),
             elf=SimpleNamespace(path="D:/demo/firmware.axf"),
         ),
         gdb_server=SimpleNamespace(
@@ -54,6 +58,7 @@ def test_start_gdb_server_uses_session_defaults() -> None:
         ),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_gdb_server(session, port=3335, persist=True)
 
     assert result["status"] == "ok"
@@ -68,6 +73,7 @@ def test_start_gdb_server_uses_session_defaults() -> None:
             "persist": True,
             "elf_path": "D:/demo/firmware.axf",
             "cwd": "D:\\demo",
+            "pack_paths": ["D:/packs/vendor.pack"],
         }
     ]
 
@@ -81,6 +87,7 @@ def test_start_gdb_server_requires_target() -> None:
         gdb_server=SimpleNamespace(),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_gdb_server(session)
 
     assert result["status"] == "error"
@@ -98,6 +105,7 @@ def test_start_gdb_server_requires_explicit_confirmation_for_remote_binding() ->
         ),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_gdb_server(session, allow_remote=True)
 
     assert result["status"] == "error"
@@ -117,6 +125,7 @@ def test_start_gdb_server_allows_confirmed_remote_binding() -> None:
         ),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_gdb_server(session, allow_remote=True, confirm_remote=True)
 
     assert result["status"] == "ok"
@@ -135,6 +144,7 @@ def test_status_and_stop_wrap_runtime() -> None:
         )
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     status = get_gdb_server_status(session)
     stopped = stop_gdb_server(session, timeout_seconds=2.5)
 
@@ -142,6 +152,28 @@ def test_status_and_stop_wrap_runtime() -> None:
     assert status["running"] is True
     assert stopped["status"] == "ok"
     assert stopped["timeout"] == 2.5
+
+
+def test_status_reports_gdb_process_that_exited_after_startup() -> None:
+    session = SimpleNamespace(
+        services=SimpleNamespace(
+            gdb_server=SimpleNamespace(
+                status=lambda: {
+                    "running": False,
+                    "host": "127.0.0.1",
+                    "port": 3333,
+                    "exit_code": 2,
+                    "log_tail": ["probe is already in use"],
+                }
+            )
+        )
+    )
+
+    result = get_gdb_server_status(session)
+
+    assert result["status"] == "partial"
+    assert result["issue"]["category"] == "tool_failure"
+    assert result["exit_code"] == 2
 
 
 def test_runtime_status_reflects_running_process() -> None:
@@ -188,6 +220,7 @@ def test_start_jlink_gdb_server_uses_session_defaults(monkeypatch) -> None:
         ),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_jlink_gdb_server(session, speed=1000)
 
     assert result["status"] == "ok"
@@ -217,6 +250,7 @@ def test_start_jlink_gdb_server_requires_target(monkeypatch) -> None:
         gdb_server=SimpleNamespace(),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_jlink_gdb_server(session)
 
     assert result["status"] == "error"
@@ -247,6 +281,7 @@ def test_start_jlink_gdb_server_retries_without_serial_on_selection_failure(monk
         gdb_server=SimpleNamespace(start_jlink=_start_jlink),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_jlink_gdb_server(session)
 
     assert result["status"] == "ok"
@@ -273,6 +308,7 @@ def test_jlink_status_and_stop_wrap_runtime() -> None:
         )
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     status = get_jlink_gdb_server_status(session)
     stopped = stop_jlink_gdb_server(session, timeout_seconds=2.0)
 
@@ -337,3 +373,55 @@ def test_runtime_start_jlink_builds_expected_command(monkeypatch, tmp_path) -> N
         "-select",
         "usb=240710115",
     ]
+
+
+def test_runtime_start_requires_listening_port(monkeypatch, tmp_path) -> None:
+    process = _FakeProcess()
+    monkeypatch.setattr("McuBuddy.gdb_server.subprocess.Popen", lambda *_args, **_kwargs: process)
+    monkeypatch.setattr("McuBuddy.gdb_server.time.sleep", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(GdbServerRuntime, "_port_is_bound", staticmethod(lambda *_args: False))
+
+    runtime = GdbServerRuntime()
+    result = runtime.start(
+        target="py32f030x8",
+        cwd=str(tmp_path),
+        startup_timeout_seconds=0.1,
+    )
+
+    assert result["status"] == "error"
+    assert result["issue"]["category"] == "tool_failure"
+    assert result["running"] is False
+    assert process.terminated is True
+
+
+def test_runtime_start_passes_cmsis_pack_to_pyocd(monkeypatch, tmp_path) -> None:
+    started: dict = {}
+
+    class _ListeningProcess(_FakeProcess):
+        pass
+
+    def popen(command, **_kwargs):
+        started["command"] = command
+        return _ListeningProcess()
+
+    monkeypatch.setattr("McuBuddy.gdb_server.subprocess.Popen", popen)
+    monkeypatch.setattr(GdbServerRuntime, "_port_is_bound", staticmethod(lambda *_args: True))
+
+    runtime = GdbServerRuntime()
+    pack_path = tmp_path / "Puya.PY32F0xx_DFP.1.2.8.pack"
+    pack_path.write_bytes(b"pack")
+    result = runtime.start(
+        target="py32f030x8",
+        pack_paths=[str(pack_path)],
+        cwd=str(tmp_path),
+    )
+
+    assert result["status"] == "ok"
+    assert started["command"][-2:] == [
+        "--pack",
+        str(pack_path.resolve()),
+    ]
+
+
+def test_runtime_default_startup_window_allows_slow_target_pack_initialization() -> None:
+    assert GdbServerRuntime.start.__kwdefaults__["startup_timeout_seconds"] == 5.0

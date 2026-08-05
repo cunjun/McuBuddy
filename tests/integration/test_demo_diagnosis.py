@@ -6,9 +6,9 @@ from McuBuddy.tools.diagnose import diagnose_hardfault, diagnose_startup_failure
 
 def test_mock_startup_failure_contains_sensor_stage() -> None:
     session = MockSessionState()
-    session.log.connect("COM-MOCK")
-    session.probe.connect("stm32l4")
-    session.elf.load("firmware.elf")
+    session.services.log.connect("COM-MOCK")
+    session.services.probe.connect("stm32l4")
+    session.services.elf.load("firmware.elf")
 
     result = diagnose_startup_failure(session, suspected_stage="sensor init")
 
@@ -22,9 +22,9 @@ def test_mock_startup_failure_contains_sensor_stage() -> None:
 
 def test_mock_hardfault_resolves_handler_symbol() -> None:
     session = MockSessionState()
-    session.log.connect("COM-MOCK")
-    session.probe.connect("stm32l4")
-    session.elf.load("firmware.elf")
+    session.services.log.connect("COM-MOCK")
+    session.services.probe.connect("stm32l4")
+    session.services.elf.load("firmware.elf")
 
     result = diagnose_hardfault(session, suspected_stage="sensor init")
 
@@ -94,9 +94,11 @@ class _HealthyElfManager:
 
 class _HealthySession:
     def __init__(self) -> None:
-        self.log = _HealthyLogBackend()
-        self.probe = _HealthyProbeBackend()
-        self.elf = _HealthyElfManager()
+        self.services = SimpleNamespace(
+            log=_HealthyLogBackend(),
+            probe=_HealthyProbeBackend(),
+            elf=_HealthyElfManager(),
+        )
         self.config = SimpleNamespace(
             probe=SimpleNamespace(backend="jlink"),
             log=SimpleNamespace(backend="uart"),
@@ -126,3 +128,41 @@ def test_diagnosis_raw_refs_report_configured_probe_backend() -> None:
 
     assert result["raw_refs"]["probe_backend"] == "jlink"
     assert result["raw_refs"]["log_backend"] == "uart"
+
+
+def test_hardfault_diagnosis_does_not_accuse_healthy_target() -> None:
+    session = _HealthySession()
+
+    result = diagnose_hardfault(session, include_stack_snapshot=False)
+
+    assert result["status"] == "partial"
+    assert result["diagnosis_type"] == "no_hardfault_evidence"
+    assert result["fault"]["fault_detected"] is False
+    assert result["issue"]["category"] == "insufficient_evidence"
+
+
+def test_startup_diagnosis_does_not_treat_tool_halt_as_firmware_stall() -> None:
+    session = _HealthySession()
+    session.services.log.read_recent = lambda _line_count=50: []
+
+    result = diagnose_startup_failure(session, auto_halt=True)
+
+    assert result["status"] == "partial"
+    assert result["diagnosis_type"] == "startup_state_indeterminate"
+    assert result["issue"]["category"] == "insufficient_evidence"
+    assert "halt" in result["issue"]["impact"].lower()
+
+
+def test_debug_event_bit_alone_is_not_reported_as_hardfault() -> None:
+    session = _HealthySession()
+    session.services.probe.read_fault_registers = lambda: {
+        "cfsr": 0,
+        "hfsr": 0x80000000,
+        "mmfar": 0,
+        "bfar": 0,
+        "shcsr": 0,
+    }
+
+    result = diagnose_hardfault(session, include_stack_snapshot=False)
+
+    assert result["diagnosis_type"] == "no_hardfault_evidence"

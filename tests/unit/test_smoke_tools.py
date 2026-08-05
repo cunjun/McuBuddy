@@ -52,8 +52,8 @@ class _Elf:
 
 def test_board_smoke_test_runs_generic_read_only_flow() -> None:
     session = SessionState()
-    session.probe = _Probe()
-    session.elf = _Elf()
+    session.services.probe = _Probe()
+    session.services.elf = _Elf()
     session.config.probe.target = "vendor_part"
     session.config.probe.unique_id = "abc"
     session.config.elf.path = r"d:\demo\app.axf"
@@ -77,8 +77,8 @@ def test_board_smoke_test_runs_generic_read_only_flow() -> None:
 
 def test_first_contact_configures_target_and_returns_next_steps() -> None:
     session = SessionState()
-    session.probe = _Probe()
-    session.elf = _Elf()
+    session.services.probe = _Probe()
+    session.services.elf = _Elf()
 
     result = first_contact(
         session,
@@ -106,7 +106,7 @@ def test_first_contact_configures_target_and_returns_next_steps() -> None:
 
 def test_doctor_reports_environment_and_probe_preflight() -> None:
     session = SessionState()
-    session.probe = _Probe()
+    session.services.probe = _Probe()
     session.config.probe.target = "STM32L496VE"
     session.config.probe.backend = "pyocd"
     session.config.elf.path = r"d:\demo\app.axf"

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from McuBuddy.tools.probe import addr_to_source
 from McuBuddy.tools.probe import source_step
 
@@ -65,8 +67,7 @@ class _FakeProbe:
 
 class _Session:
     def __init__(self, elf, probe) -> None:
-        self.elf = elf
-        self.probe = probe
+        self.services = SimpleNamespace(elf=elf, probe=probe)
 
 
 def test_addr_to_source_returns_line_and_symbol() -> None:

@@ -310,7 +310,7 @@ sequenceDiagram
 - `SessionState` 保存当前探针、ELF、SVD、日志和配置状态；
 - 同一 Session 内访问共享硬件状态的操作会串行执行；
 - 阻塞式探针 SDK、构建和文件操作在工作线程中运行；
-- 工具配置档决定启动时暴露 `core` 还是 `full` 工具面；
+- `core` 配置档与显式 toolset 决定启动时暴露的工具面；
 - 安全注册表描述工具属于只读、状态变化、写入或持久性破坏操作；
 - 安全守卫对目标、地址、路径和高风险动作执行检查。
 
@@ -388,7 +388,7 @@ McuBuddy/
 │   ├── server.py                 # FastMCP 应用入口
 │   ├── session.py                # 调试 Session 状态
 │   ├── mcp_execution.py          # MCP 执行、线程和串行化边界
-│   ├── tool_profiles.py          # core/full 工具配置档
+│   ├── tool_profiles.py          # core/toolset 工具配置
 │   ├── tool_safety.py            # 工具安全分类
 │   ├── security_guards.py        # 输入与危险操作守卫
 │   ├── mcp_tools/                # MCP 工具注册层
@@ -435,7 +435,7 @@ McuBuddy/
 | `server.py` | 创建并启动 MCP 服务 | Session、工具配置档 | FastMCP 应用 |
 | `session.py` | 保存一次调试会话的共享状态 | 探针与运行配置 | `SessionState` |
 | `mcp_execution.py` | 包装 MCP 调用、隔离阻塞操作、串行化 Session | 工具回调 | 安全执行结果 |
-| `tool_profiles.py` | 控制 `core` 与 `full` 工具面 | 环境变量或启动参数 | 固定工具集合 |
+| `tool_profiles.py` | 控制 `core` 与显式 toolset 工具面 | 环境变量或启动参数 | 固定工具集合 |
 | `tool_safety.py` | 描述工具的安全等级和执行类型 | 工具名 | 机器可读安全元数据 |
 | `security_guards.py` | 检查地址、路径和危险输入 | 用户参数 | 允许或拒绝 |
 | `mcp_tools/` | 对 AI 暴露 MCP 工具 | MCP 参数 | 领域工具调用 |
@@ -478,7 +478,7 @@ McuBuddy/
 McuBuddy 命令
   → server.main()
   → 创建 SessionState
-  → 解析 core/full 工具配置档
+  → 解析 core/toolset 工具配置
   → create_server()
   → register_all_tools()
   → SessionToolRegistrar 包装工具
@@ -666,7 +666,7 @@ python .\skills\mcubuddy\scripts\install_skill.py --target codex --overwrite
 3. 为领域行为添加单元测试；
 4. 在 `src/McuBuddy/mcp_tools/` 添加薄注册包装；
 5. 在 `tool_safety.py` 注册安全等级；
-6. 决定工具属于 `core` 还是仅属于 `full`；
+6. 决定工具属于 `default` 还是一个显式领域 toolset；
 7. 添加 MCP 契约或集成测试；
 8. 更新工具参考和相关文档；
 9. 必要时进行真实板卡验证。
@@ -773,7 +773,7 @@ McuBuddy 的验证分为多个证据层。不同层不能互相冒充。
 - Tool Reference 与实际工具面的同步；
 - Skill 参考资料同步；
 - Skill 目录结构和元数据校验；
-- `core`/`full` 工具数量和名称契约。
+- `core`/toolset 工具名称契约。
 
 ### 13.4 构建验证
 
@@ -1089,7 +1089,7 @@ Windows 源码环境应使用虚拟环境中的绝对可执行路径，并显式
 - `command` 指向真实存在的虚拟环境可执行文件；
 - `cwd` 指向源码仓库或明确的运行目录；
 - 默认 Profile 使用 `core`；
-- 需要 `full` 时在服务启动前设置并重启客户端；
+- 需要扩展能力时在服务启动前设置 `MCUBUDDY_TOOLSETS` 并重启客户端；
 - 不把本机绝对路径写入 `SKILL.md` 或可发布文档模板；
 - 配置变更后必须重启 MCP 客户端；
 - 在访问真实硬件前先运行管理预检。
@@ -1130,7 +1130,7 @@ Windows 源码环境应使用虚拟环境中的绝对可执行路径，并显式
 | FreeRTOS 卡顿 | RTOS 总览、目标任务、等待对象、栈上下文 |
 | 内存破坏 | 可重复快照、栈边界、符号和写入路径 |
 | 时钟异常 | RCC 与时钟树相关 SVD 证据 |
-| 需要证明执行路径 | 在 `full` Profile 中运行到函数或源码位置 |
+| 需要证明执行路径 | 启用 `probe` toolset 后运行到函数或源码位置 |
 
 每次检查只推进一个假设。读取多个寄存器可以组成一次证据收集，但不要在同一步中同时
 修改时钟、GPIO、DMA 和外设配置，否则无法判断是哪项修改造成变化。
@@ -1313,10 +1313,10 @@ skills/mcubuddy/
 安装后应重启客户端。若 MCP 不可用，Skill 可以读取用户级安装记录；记录不存在时，
 再询问一次路径并在确认后保存。MCP 已连接时不能重复询问路径。
 
-### 18.9 为什么保留 `core` 与 `full`
+### 18.9 为什么使用 `core` 与显式 toolset
 
 默认 `core` 不是阉割功能，而是为常见诊断提供较小、稳定、低风险的工具面。
-`full` 面向需要源码级运行控制、高级后端或高影响操作的专家流程。
+`probe`、`diagnose` 等显式 toolset 面向需要源码级控制或高影响操作的专家流程。
 
 设计约束：
 
@@ -1324,7 +1324,7 @@ skills/mcubuddy/
 - 运行中的 Session 不能升级；
 - 工具应在注册阶段过滤，而不是只在文档中隐藏；
 - 两个 Profile 都必须经过统一安全与 Session 执行边界；
-- `core` 文档示例不能调用只在 `full` 注册的工具；
+- `core` 文档示例不能调用需要额外 toolset 的工具；
 - 新增工具时必须明确安全级别、执行模式和所属 Profile。
 
 ### 18.10 合并后的维护规则
@@ -1333,7 +1333,7 @@ skills/mcubuddy/
 
 - 新增、删除或重命名 MCP 工具；
 - CLI 命令或安装方式变化；
-- `core` / `full` 工具面变化；
+- `core` / toolset 工具面变化；
 - Session、并发或取消语义变化；
 - 安全等级、确认要求或文件访问边界变化；
 - 新增探针后端或改变支持状态；

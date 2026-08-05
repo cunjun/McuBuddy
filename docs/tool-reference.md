@@ -6,9 +6,11 @@ scenario guidance in the [Project Guide](../PROJECT_GUIDE.md), and capability st
 
 ## Tool Profiles
 
-McuBuddy v0.5.2 exposes the `core` profile by default. Set `MCUBUDDY_TOOL_PROFILE=full` at server
-startup to expose the complete expert catalog. The active profile is fixed for the lifetime of the
-MCP server process.
+McuBuddy exposes the `core` profile with the 19-tool `default` toolset. Add comma-separated domains
+with `MCUBUDDY_TOOLSETS=probe,diagnose`. Supported toolsets are `default`, `probe`, `diagnose`,
+`build_flash`, `rtos`, `logs`, and `experimental`. Select the required domains with
+`MCUBUDDY_TOOLSETS`; there is no aggregate compatibility profile for the
+complete compatibility catalog. The selection is fixed for the MCP server process lifetime.
 
 Core tools:
 
@@ -19,7 +21,6 @@ Core tools:
 - `list_tool_safety`
 - `list_validation_records`
 - `pack_diagnose`
-- `pack_install`
 - `match_chip_name`
 - `get_target_info`
 - `list_connected_probes`
@@ -30,32 +31,10 @@ Core tools:
 - `probe_connect`
 - `disconnect_all`
 - `finish_debug_session`
-- `probe_halt`
-- `probe_resume`
-- `probe_reset`
 - `read_stopped_context`
-- `backtrace`
-- `collect_crash_evidence`
-- `collect_startup_evidence`
-- `collect_peripheral_evidence`
-- `collect_rtos_evidence`
-- `svd_read_peripheral`
-- `list_rtos_tasks`
-- `rtos_task_context`
-- `read_rtt_log`
-- `configure_log`
-- `log_connect`
-- `uart_send`
-- `uart_send_with_cleanup`
-- `uart_read_bytes`
-- `uart_exchange`
-- `log_tail`
-- `discover_keil_projects`
-- `configure_keil_project`
-- `build_project`
-- `flash_firmware`
-- `flash_image`
-- `compare_elf_to_flash`
+
+The generated [Tool Catalog](tool-catalog.generated.md) is the canonical per-tool assignment,
+including ownership, safety, stability, schema version, and deprecation metadata.
 
 `list_tool_safety()` lists only tools visible in the active profile. Use
 `list_tool_safety(include_hidden=true)` to inspect metadata for the full catalog without changing
@@ -72,6 +51,12 @@ full preflight request.
 enforces a bounded size and checksum, then atomically installs it after `confirm=True`.
 
 ## Evidence Packages
+
+Hardware-facing failures use a common `issue` object when McuBuddy can identify the boundary:
+`category` distinguishes `hardware_limit`, `firmware_not_applicable`, `configuration`,
+`tool_failure`, and `insufficient_evidence`; `evidence`, `impact`, and `next_step` explain what was
+observed, why the requested result is unavailable, and the fastest safe follow-up. Treat a missing
+capability as an explicit result, not as evidence that the firmware is defective.
 
 - `collect_crash_evidence`
 - `collect_startup_evidence`
@@ -237,6 +222,11 @@ RX evidence and requires `confirm=True` because it sends data to the target.
 - `diagnose_clock_issue`
 - `run_debug_loop`
 
+`diagnose_hardfault` reports `hardfault_detected` only when fault registers, exception state, or a
+resolved HardFault handler provide positive evidence. `diagnose_startup_failure` does not treat a PC
+that stopped because the tool called `halt` as proof of a firmware stall; without a fault or startup
+success marker it returns `startup_state_indeterminate` with `insufficient_evidence` guidance.
+
 ## Build, Flash, GDB, And Lifecycle
 
 - `build_project`
@@ -258,3 +248,7 @@ ends, but agents should call it explicitly before returning a final debugging co
 
 `start_gdb_server` binds to localhost by default. Remote binding requires both
 `allow_remote=True` and `confirm_remote=True` because the GDB server has no authentication.
+Startup succeeds only after the child process remains alive and its GDB TCP port is listening. The
+condition-based startup window allows slower CMSIS-Pack initialization but returns immediately once
+ready, without opening and consuming a GDB client connection. A later process exit is returned as
+`partial` with the exit code and log tail instead of an ambiguous “not running” result.

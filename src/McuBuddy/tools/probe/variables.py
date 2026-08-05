@@ -5,11 +5,11 @@ from ...tool_safety import require_tool_confirmation
 
 
 def get_locals(session: SessionState) -> dict:
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded. Load an ELF file first."}
-    core = session.probe.read_core_registers()
+    core = session.services.probe.read_core_registers()
     pc = core["pc"]
-    variables = session.elf.get_locals_at(pc)
+    variables = session.services.elf.get_locals_at(pc)
     if not variables:
         return {
             "status": "ok",
@@ -34,9 +34,9 @@ def get_locals(session: SessionState) -> dict:
             data: bytes | None = None
 
             if loc_type == "addr":
-                data = session.probe.read_memory(loc_value, size)
+                data = session.services.probe.read_memory(loc_value, size)
             elif loc_type == "fbreg":
-                data = session.probe.read_memory(core["sp"] + loc_value, size)
+                data = session.services.probe.read_memory(core["sp"] + loc_value, size)
             elif loc_type == "reg":
                 reg_val = core.get(loc_value)
                 if reg_val is not None:
@@ -45,7 +45,7 @@ def get_locals(session: SessionState) -> dict:
                 reg_name, offset = loc_value
                 reg_val = core.get(reg_name)
                 if reg_val is not None:
-                    data = session.probe.read_memory(reg_val + offset, size)
+                    data = session.services.probe.read_memory(reg_val + offset, size)
             else:
                 entry["note"] = "location unknown (optimized out or complex expression)"
 
@@ -57,7 +57,7 @@ def get_locals(session: SessionState) -> dict:
             entry["note"] = str(e)
         result.append(entry)
 
-    src = session.elf.addr_to_source(pc)
+    src = session.services.elf.addr_to_source(pc)
     return {
         "status": "ok",
         "summary": f"Found {len(result)} local variable(s) at {hex(pc)}.",
@@ -70,11 +70,11 @@ def get_locals(session: SessionState) -> dict:
 def set_local(session: SessionState, name: str, value: int, confirm: bool = False) -> dict:
     if blocked := require_tool_confirmation("set_local", confirm):
         return blocked
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded. Load an ELF file first."}
-    core = session.probe.read_core_registers()
+    core = session.services.probe.read_core_registers()
     pc = core["pc"]
-    variables = session.elf.get_locals_at(pc)
+    variables = session.services.elf.get_locals_at(pc)
     var = next((v for v in variables if v["name"] == name), None)
     if var is None:
         names = [v["name"] for v in variables]
@@ -93,15 +93,15 @@ def set_local(session: SessionState, name: str, value: int, confirm: bool = Fals
     loc_value = var["loc_value"]
     try:
         if loc_type == "addr":
-            session.probe.write_memory(loc_value, raw)
+            session.services.probe.write_memory(loc_value, raw)
         elif loc_type == "fbreg":
-            session.probe.write_memory(core["sp"] + loc_value, raw)
+            session.services.probe.write_memory(core["sp"] + loc_value, raw)
         elif loc_type == "breg":
             reg_name, offset = loc_value
             reg_val = core.get(reg_name)
             if reg_val is None:
                 return {"status": "error", "summary": f"Register '{reg_name}' not available."}
-            session.probe.write_memory(reg_val + offset, raw)
+            session.services.probe.write_memory(reg_val + offset, raw)
         elif loc_type == "reg":
             return {
                 "status": "error",

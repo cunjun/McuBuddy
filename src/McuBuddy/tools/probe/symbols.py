@@ -14,14 +14,14 @@ def watch_symbol(
     poll_interval_seconds: float = 0.1,
 ) -> dict:
     """Poll a symbol's value until it changes or timeout expires."""
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
-    resolved = session.elf.resolve_symbol(name)
+    resolved = session.services.elf.resolve_symbol(name)
     if resolved["address"] is None:
         return {"status": "error", "summary": f"Symbol '{name}' not found in ELF."}
     addr = int(resolved["address"], 16)
     try:
-        initial = session.probe.read_memory(addr, size)
+        initial = session.services.probe.read_memory(addr, size)
     except Exception as e:
         return {"status": "error", "summary": str(e)}
 
@@ -32,7 +32,7 @@ def watch_symbol(
         time.sleep(poll_interval_seconds)
         polls += 1
         try:
-            current = session.probe.read_memory(addr, size)
+            current = session.services.probe.read_memory(addr, size)
         except Exception as e:
             return {"status": "error", "summary": str(e)}
         if current != initial:
@@ -64,9 +64,9 @@ def watch_symbol(
 
 def elf_list_functions(session: SessionState, name_filter: str | None = None) -> dict:
     """List all function symbols from the loaded ELF."""
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
-    funcs = session.elf.list_functions(name_filter=name_filter)
+    funcs = session.services.elf.list_functions(name_filter=name_filter)
     return {
         "status": "ok",
         "summary": f"{len(funcs)} function(s) found"
@@ -78,9 +78,9 @@ def elf_list_functions(session: SessionState, name_filter: str | None = None) ->
 
 def elf_symbol_info(session: SessionState, name: str) -> dict:
     """Look up detailed info for a single symbol by exact name."""
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
-    info = session.elf.symbol_info(name)
+    info = session.services.elf.symbol_info(name)
     if not info["found"]:
         return {
             "status": "error",
@@ -94,12 +94,12 @@ def elf_symbol_info(session: SessionState, name: str) -> dict:
 
 
 def read_symbol_value(session: SessionState, name: str, size: int = 4) -> dict:
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {
             "status": "error",
             "summary": "ELF not loaded. Load an ELF file first.",
         }
-    resolved = session.elf.resolve_symbol(name)
+    resolved = session.services.elf.resolve_symbol(name)
     if resolved["address"] is None:
         return {
             "status": "error",
@@ -107,7 +107,7 @@ def read_symbol_value(session: SessionState, name: str, size: int = 4) -> dict:
         }
     addr = int(resolved["address"], 16)
     try:
-        data = session.probe.read_memory(addr, size)
+        data = session.services.probe.read_memory(addr, size)
     except Exception as e:
         return {
             "status": "error",
@@ -136,12 +136,12 @@ def write_symbol_value(
 ) -> dict:
     if blocked := require_tool_confirmation("write_symbol_value", confirm):
         return blocked
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {
             "status": "error",
             "summary": "ELF not loaded. Load an ELF file first.",
         }
-    resolved = session.elf.resolve_symbol(name)
+    resolved = session.services.elf.resolve_symbol(name)
     if resolved["address"] is None:
         return {
             "status": "error",
@@ -156,7 +156,7 @@ def write_symbol_value(
             "summary": f"Value {value} does not fit in {size} byte(s).",
         }
     try:
-        session.probe.write_memory(addr, raw)
+        session.services.probe.write_memory(addr, raw)
     except Exception as e:
         return {
             "status": "error",

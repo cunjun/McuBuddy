@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from ...mcp_execution import SessionToolRegistrar
+from ...mcp_execution import require_session_tool_registrar
 from ...session import SessionState
 from ...tools import probe as probe_tools
 
 
-def register_probe_rtos_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_probe_rtos_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def read_stack_usage(
         canary: int = 0xA5A5A5A5,
         task_name_len: int = 16,
@@ -27,7 +30,7 @@ def register_probe_rtos_tools(mcp, session: SessionState) -> None:
             max_priorities=max_priorities,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def diagnose_memory_corruption(stack_canary: int = 0xCCCCCCCC) -> dict:
         """Scan stack and heap regions for corruption evidence.
 
@@ -41,7 +44,7 @@ def register_probe_rtos_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.diagnose_memory_corruption(session, stack_canary=stack_canary)
 
-    @mcp.tool()
+    @registrar.tool()
     async def list_rtos_tasks(max_priorities: int = 32, task_name_len: int = 16) -> dict:
         """List all FreeRTOS tasks with state, priority, and stack usage.
 
@@ -56,7 +59,7 @@ def register_probe_rtos_tools(mcp, session: SessionState) -> None:
             session, max_priorities=max_priorities, task_name_len=task_name_len
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def rtos_task_context(task_name: str, task_name_len: int = 16) -> dict:
         """Read the saved register context of a blocked or suspended FreeRTOS task.
 
@@ -73,7 +76,7 @@ def register_probe_rtos_tools(mcp, session: SessionState) -> None:
             session, task_name=task_name, task_name_len=task_name_len
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def rtos_switch_context(
         task_name: str,
         task_name_len: int = 16,
@@ -95,7 +98,7 @@ def register_probe_rtos_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def read_rtt_log(
         channel: int = 0,
         max_bytes: int = 4096,

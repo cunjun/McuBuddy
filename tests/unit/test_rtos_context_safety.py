@@ -17,13 +17,13 @@ class _RecordingProbe:
 
 def test_rtos_switch_context_requires_confirmation_before_writing_target() -> None:
     session = SessionState()
-    session.probe = _RecordingProbe()
+    session.services.probe = _RecordingProbe()
 
     result = rtos_switch_context(session, task_name="worker")
 
     assert result["status"] == "error"
     assert result["safety"]["level"] == "state-changing"
-    assert session.probe.writes == []
+    assert session.services.probe.writes == []
 
 
 def test_rtos_switch_context_reports_unsupported_without_register_write_capability(
@@ -50,10 +50,10 @@ def test_rtos_switch_context_reports_unsupported_without_register_write_capabili
         },
     )
     session = SessionState()
-    session.probe = _RecordingProbe()
+    session.services.probe = _RecordingProbe()
 
     result = rtos_switch_context(session, task_name="worker", confirm=True)
 
     assert result["status"] == "error"
     assert "core register writes" in result["summary"]
-    assert session.probe.writes == []
+    assert session.services.probe.writes == []

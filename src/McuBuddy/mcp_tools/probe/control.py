@@ -1,36 +1,39 @@
 from __future__ import annotations
 
+from ...mcp_execution import SessionToolRegistrar
+from ...mcp_execution import require_session_tool_registrar
 from ...session import SessionState
 from ...tools import probe as probe_tools
 
 
-def register_probe_control_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_probe_control_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def list_connected_probes() -> dict:
         """List all probes currently connected to this machine. Start here if unsure what probe to use."""
         return probe_tools.list_connected_probes(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_connect(target: str, unique_id: str | None = None) -> dict:
         return probe_tools.connect_probe(session, target=target, unique_id=unique_id)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_disconnect() -> dict:
         return probe_tools.disconnect_probe(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_halt() -> dict:
         return probe_tools.halt_target(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_resume() -> dict:
         return probe_tools.resume_target(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_reset(halt: bool = False) -> dict:
         return probe_tools.reset_target(session, halt=halt)
 
-    @mcp.tool()
+    @registrar.tool()
     async def set_breakpoint(
         symbol: str | None = None,
         address: int | None = None,
@@ -57,12 +60,12 @@ def register_probe_control_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def list_conditional_breakpoints() -> dict:
         """List all registered conditional breakpoints in the current session."""
         return probe_tools.list_conditional_breakpoints(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def set_breakpoints_for_function_range(
         start_symbol: str,
         end_symbol: str,
@@ -80,7 +83,7 @@ def register_probe_control_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def clear_breakpoint(
         symbol: str | None = None,
         address: int | None = None,
@@ -90,11 +93,11 @@ def register_probe_control_tools(mcp, session: SessionState) -> None:
             session, symbol=symbol, address=address, confirm=confirm
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def clear_all_breakpoints(confirm: bool = False) -> dict:
         return probe_tools.clear_all_breakpoints(session, confirm=confirm)
 
-    @mcp.tool()
+    @registrar.tool()
     async def continue_target(
         timeout_seconds: float = 5.0,
         poll_interval_ms: int = 50,
@@ -112,7 +115,7 @@ def register_probe_control_tools(mcp, session: SessionState) -> None:
             max_condition_loops=max_condition_loops,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def read_stopped_context(
         include_fault_registers: bool = True,
         include_logs: bool = False,
@@ -127,7 +130,7 @@ def register_probe_control_tools(mcp, session: SessionState) -> None:
             resolve_symbols=resolve_symbols,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_step() -> dict:
         """Execute one instruction and return the new PC (with symbol if ELF is loaded)."""
         return probe_tools.step_instruction(session)

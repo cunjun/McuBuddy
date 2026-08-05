@@ -57,7 +57,7 @@ def test_allowed_file_paths_normalizes_candidate(tmp_path) -> None:
 
 def test_write_memory_guard_runs_before_backend_when_confirmed() -> None:
     probe = SimpleNamespace(calls=[], write_memory=lambda address, data: probe.calls.append(data))
-    session = SimpleNamespace(probe=probe, config=RuntimeConfig())
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe), config=RuntimeConfig())
 
     result = write_memory(session, address=0x20000000, data=[1], confirm=True)
 
@@ -70,7 +70,7 @@ def test_read_memory_guard_runs_before_backend() -> None:
     probe = SimpleNamespace(calls=[], read_memory=lambda address, size: probe.calls.append(size))
     config = RuntimeConfig()
     config.memory.max_read_size = 1
-    session = SimpleNamespace(probe=probe, config=config)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe), config=config)
 
     result = read_memory(session, address=0x20000000, size=2)
 
@@ -81,7 +81,7 @@ def test_read_memory_guard_runs_before_backend() -> None:
 
 def test_erase_flash_guard_runs_after_confirmation_before_backend() -> None:
     probe = SimpleNamespace(calls=[], erase_flash=lambda **kwargs: probe.calls.append(kwargs))
-    session = SimpleNamespace(probe=probe, config=RuntimeConfig())
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe), config=RuntimeConfig())
 
     result = erase_flash(session, chip_erase=True, confirm=True)
 

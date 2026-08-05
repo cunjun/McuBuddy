@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from ...mcp_execution import SessionToolRegistrar
+from ...mcp_execution import require_session_tool_registrar
 from ...session import SessionState
 from ...tools import probe as probe_tools
 
 
-def register_probe_symbol_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_probe_symbol_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def watch_symbol(
         name: str,
         size: int = 4,
@@ -27,7 +30,7 @@ def register_probe_symbol_tools(mcp, session: SessionState) -> None:
             poll_interval_seconds=poll_interval_seconds,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def elf_list_functions(name_filter: str | None = None) -> dict:
         """List all function symbols from the loaded ELF with address and size.
 
@@ -38,7 +41,7 @@ def register_probe_symbol_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.elf_list_functions(session, name_filter=name_filter)
 
-    @mcp.tool()
+    @registrar.tool()
     async def elf_symbol_info(name: str) -> dict:
         """Return address, size, type, and source location for a single symbol.
 
@@ -50,7 +53,7 @@ def register_probe_symbol_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.elf_symbol_info(session, name=name)
 
-    @mcp.tool()
+    @registrar.tool()
     async def read_symbol_value(name: str, size: int = 4) -> dict:
         """Read the value of a symbol (variable, linker symbol) by name from target memory.
 
@@ -62,7 +65,7 @@ def register_probe_symbol_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.read_symbol_value(session, name=name, size=size)
 
-    @mcp.tool()
+    @registrar.tool()
     async def write_symbol_value(
         name: str,
         value: int,

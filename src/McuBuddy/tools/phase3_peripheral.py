@@ -20,7 +20,7 @@ def diagnose_peripheral_stuck(
     enable bit for the peripheral is set. These two checks together cover the
     most common root causes of a silent/stuck peripheral.
     """
-    if not session.svd.is_loaded:
+    if not session.services.svd.is_loaded:
         return {
             "status": "error",
             "summary": "No SVD file loaded. Call svd_load first.",
@@ -32,7 +32,7 @@ def diagnose_peripheral_stuck(
             "summary": "Probe not connected. Call probe_connect or connect_with_config first.",
         }
 
-    periph_result = session.svd.read_peripheral_state(peripheral, session.probe)
+    periph_result = session.services.svd.read_peripheral_state(peripheral, session.services.probe)
     if periph_result["status"] != "ok":
         return periph_result
 
@@ -62,7 +62,7 @@ def _check_rcc_clock(session: SessionState, peripheral_name: str) -> list[str]:
     """Search SVD RCC registers for the clock-enable bit of *peripheral_name*."""
     notes: list[str] = []
 
-    rcc = session.svd._peripheral_map.get("RCC")
+    rcc = session.services.svd._peripheral_map.get("RCC")
     if rcc is None:
         return ["RCC not found in SVD -- cannot check clock enable."]
 
@@ -73,7 +73,7 @@ def _check_rcc_clock(session: SessionState, peripheral_name: str) -> list[str]:
                 continue
             addr = rcc.base_address + reg.address_offset
             try:
-                raw = session.probe.read_memory(addr, 4)
+                raw = session.services.probe.read_memory(addr, 4)
                 value = int.from_bytes(raw, "little")
                 mask = (1 << field.bit_width) - 1
                 enabled = (value >> field.bit_offset) & mask

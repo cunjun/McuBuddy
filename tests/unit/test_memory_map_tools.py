@@ -87,6 +87,7 @@ def test_read_memory_map_uses_elf_get_sections() -> None:
         )
     )
 
+    session.services = SimpleNamespace(elf=session.elf)
     result = read_memory_map(session)
 
     assert result["status"] == "ok"
@@ -141,6 +142,7 @@ def test_compare_elf_to_flash_uses_lma_chunks_and_skips_runtime_ram() -> None:
         config=config,
     )
 
+    session.services = SimpleNamespace(elf=session.elf, probe=session.probe)
     result = compare_elf_to_flash(session)
 
     assert result["status"] == "ok"
@@ -199,6 +201,7 @@ def test_compare_elf_to_flash_reports_flash_mismatch_explicitly() -> None:
         config=RuntimeConfig(),
     )
 
+    session.services = SimpleNamespace(elf=session.elf, probe=session.probe)
     result = compare_elf_to_flash(session)
 
     assert result["status"] == "ok"

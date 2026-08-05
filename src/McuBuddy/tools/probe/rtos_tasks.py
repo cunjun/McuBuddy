@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ...issue_reporting import issue_details
 from ...session import SessionState
 
 
@@ -19,24 +20,29 @@ def list_rtos_tasks(
       offset 0x34: pcTaskName[task_name_len]
     Requires ELF loaded and probe connected.
     """
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
 
     def _sym(name: str) -> int | None:
-        r = session.elf.resolve_symbol(name)
+        r = session.services.elf.resolve_symbol(name)
         return int(r["address"], 16) if r["address"] is not None else None
 
     def read32(addr: int) -> int:
-        return int.from_bytes(session.probe.read_memory(addr, 4), "little")
+        return int.from_bytes(session.services.probe.read_memory(addr, 4), "little")
 
     # --- kernel globals ---
     current_tcb_ptr = _sym("pxCurrentTCB")
     if current_tcb_ptr is None:
         return {
             "status": "error",
-            "summary": "Symbol 'pxCurrentTCB' not found — is this a FreeRTOS target?",
+            "summary": "FreeRTOS symbol 'pxCurrentTCB' was not found in the loaded firmware.",
+            "issue": issue_details(
+                "firmware_not_applicable",
+                evidence="The loaded ELF does not define pxCurrentTCB.",
+                impact="FreeRTOS task inspection is not applicable to this firmware.",
+                next_step="Use bare-metal stack, interrupt, and execution-context tools instead.",
+            ),
         }
-
     try:
         running_tcb = read32(current_tcb_ptr)
         num_tasks_ptr = _sym("uxCurrentNumberOfTasks")
@@ -119,7 +125,7 @@ def list_rtos_tasks(
             top_of_stack = read32(tcb_addr + TCB_TOP_OF_STACK)
             priority = read32(tcb_addr + TCB_PRIORITY)
             stack_base = read32(tcb_addr + TCB_STACK_BASE)
-            name_bytes = session.probe.read_memory(tcb_addr + TCB_NAME, task_name_len)
+            name_bytes = session.services.probe.read_memory(tcb_addr + TCB_NAME, task_name_len)
             name = name_bytes.split(b"\x00")[0].decode("utf-8", errors="replace")
         except Exception as e:
             tasks.append({"tcb_address": hex(tcb_addr), "state": state, "error": str(e)})
@@ -138,8 +144,8 @@ def list_rtos_tasks(
             "stack_base": hex(stack_base),
             "stack_used_bytes": stack_used,
         }
-        if session.elf.is_loaded:
-            r = session.elf.resolve_address(top_of_stack)
+        if session.services.elf.is_loaded:
+            r = session.services.elf.resolve_address(top_of_stack)
             task["pc_symbol"] = r.get("symbol")
         tasks.append(task)
 

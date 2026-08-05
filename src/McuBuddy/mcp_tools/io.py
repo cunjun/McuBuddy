@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Literal
 
+from ..mcp_execution import SessionToolRegistrar
+from ..mcp_execution import require_session_tool_registrar
 from ..session import SessionState
 from ..tools.lifecycle import disconnect_all as _disconnect_all
 from ..tools.lifecycle import finish_debug_session as _finish_debug_session
@@ -14,20 +16,21 @@ from ..tools.logs import uart_send as _uart_send
 from ..tools.logs import uart_send_with_cleanup as _uart_send_with_cleanup
 
 
-def register_io_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_io_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def elf_load(path: str) -> dict:
-        return session.elf.load(path)
+        return session.services.elf.load(path)
 
-    @mcp.tool()
+    @registrar.tool()
     async def log_connect(port: str, baudrate: int = 115200) -> dict:
         return _connect_log(session, port=port, baudrate=baudrate)
 
-    @mcp.tool()
+    @registrar.tool()
     async def log_disconnect() -> dict:
         return _disconnect_log(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def uart_send(
         data: str,
         data_format: Literal["hex", "text"],
@@ -35,7 +38,7 @@ def register_io_tools(mcp, session: SessionState) -> None:
     ) -> dict:
         return _uart_send(session, data=data, data_format=data_format)
 
-    @mcp.tool()
+    @registrar.tool()
     async def uart_send_with_cleanup(
         data: str,
         data_format: Literal["hex", "text"],
@@ -52,7 +55,7 @@ def register_io_tools(mcp, session: SessionState) -> None:
             cleanup_data_format=cleanup_data_format,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def uart_read_bytes(
         timeout_ms: int = 1000,
         max_bytes: int = 4096,
@@ -65,7 +68,7 @@ def register_io_tools(mcp, session: SessionState) -> None:
             idle_timeout_ms=idle_timeout_ms,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def uart_exchange(
         data: str,
         data_format: Literal["hex", "text"],
@@ -83,15 +86,15 @@ def register_io_tools(mcp, session: SessionState) -> None:
             idle_timeout_ms=idle_timeout_ms,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def log_tail(line_count: int = 50) -> dict:
         return _tail_logs(session, line_count=line_count)
 
-    @mcp.tool()
+    @registrar.tool()
     async def disconnect_all() -> dict:
         return _disconnect_all(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def finish_debug_session() -> dict:
         """Stop registered actuators, reset and run the target, then disconnect."""
         return _finish_debug_session(session)

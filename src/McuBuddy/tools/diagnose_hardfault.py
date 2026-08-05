@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ..models.diagnostics import HardFaultDiagnosis, LogContext, StackSnapshot, SymbolContext
+from ..issue_reporting import issue_details
 from ..session import SessionState
 from .diagnostic_context import collect_diagnostic_context
 from .diagnose_faults import _classify_fault, _describe_fault
@@ -18,7 +19,7 @@ def diagnose_hardfault(
     suspected_stage: str | None = None,
 ) -> dict:
     if auto_halt:
-        session.probe.halt()
+        session.services.probe.halt()
 
     context = collect_diagnostic_context(
         session,
@@ -37,7 +38,7 @@ def diagnose_hardfault(
 
     stack_snapshot = StackSnapshot()
     if include_stack_snapshot:
-        raw = session.probe.read_memory(core["sp"], stack_snapshot_bytes)
+        raw = session.services.probe.read_memory(core["sp"], stack_snapshot_bytes)
         stack_snapshot = StackSnapshot(
             included=True,
             start_address=hex(core["sp"]),
@@ -45,12 +46,19 @@ def diagnose_hardfault(
             data_hex=raw.hex(" "),
         )
 
-    fault_class = _classify_fault(fault_registers)
-    summary_stage = suspected_stage or "startup"
-    summary = f"Target entered HardFault shortly after {summary_stage}."
-
     cfsr = fault_registers.get("cfsr", 0)
     hfsr = fault_registers.get("hfsr", 0)
+    ipsr = core.get("xpsr", 0) & 0x1FF
+    handler_active = bool(pc_symbol and "hardfault" in pc_symbol.lower()) or ipsr == 3
+    fault_detected = bool(cfsr or (hfsr & 0x40000002) or handler_active)
+    fault_class = _classify_fault(fault_registers) if fault_detected else "none"
+    summary_stage = suspected_stage or "startup"
+    summary = (
+        f"Target entered HardFault shortly after {summary_stage}."
+        if fault_detected
+        else "No HardFault evidence was found in the captured target state."
+    )
+
     mmfar = fault_registers.get("mmfar", 0)
     bfar = fault_registers.get("bfar", 0)
     shcsr = fault_registers.get("shcsr", 0)
@@ -121,16 +129,16 @@ def diagnose_hardfault(
         evidence.append("PC = 0xffffffff.")
 
     diagnosis = HardFaultDiagnosis(
-        status="ok",
-        diagnosis_type="hardfault_detected",
+        status="ok" if fault_detected else "partial",
+        diagnosis_type="hardfault_detected" if fault_detected else "no_hardfault_evidence",
         summary=summary,
-        confidence="high" if fault_registers.get("cfsr", 0) else "medium",
+        confidence="high" if fault_detected and cfsr else ("medium" if fault_detected else "low"),
         target_state={"halted": True, "reason": "halted_for_analysis"},
         fault={
-            "fault_detected": True,
-            "fault_handler_active": pc_symbol == "HardFault_Handler",
-            "fault_class": fault_class,
-            "fault_description": _describe_fault(fault_class),
+            "fault_detected": fault_detected,
+            "fault_handler_active": handler_active,
+            "fault_class": fault_class if fault_detected else None,
+            "fault_description": _describe_fault(fault_class) if fault_detected else None,
             "escalated_to_hardfault": bool(hfsr & 0x40000000),
             "registers": {
                 "pc": hex(core["pc"]),
@@ -154,5 +162,15 @@ def diagnose_hardfault(
         stack_snapshot=stack_snapshot,
         evidence=evidence,
         raw_refs=context.raw_refs,
+        issue=(
+            None
+            if fault_detected
+            else issue_details(
+                "insufficient_evidence",
+                evidence="CFSR/HFSR are clear and execution is not in HardFault_Handler.",
+                impact="A HardFault conclusion would be a false positive.",
+                next_step="Capture the target at the failure moment or provide crash logs before retrying.",
+            )
+        ),
     )
     return diagnosis.model_dump()

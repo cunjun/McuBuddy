@@ -4,42 +4,51 @@ from ..session import SessionState
 
 
 def finish_debug_session(session: SessionState) -> dict:
-    if session.debug_session_finish_result is not None:
-        return {**session.debug_session_finish_result, "already_finished": True}
+    lifecycle = session.lifecycle
+    if lifecycle.finish_result is not None and lifecycle.finish_result["status"] == "ok":
+        return {**session.lifecycle.finish_result, "already_finished": True}
 
     results: dict[str, dict] = {}
     errors: dict[str, str] = {}
 
-    def run(name: str, action) -> None:
+    def run(name: str, action, *, remember: bool = True) -> bool:
+        if remember and name in lifecycle.completed_cleanup_steps:
+            return True
         try:
             result = action()
             results[name] = result
             if isinstance(result, dict) and result.get("status") == "error":
                 errors[name] = result.get("summary", "operation reported an error")
+                return False
         except Exception as exc:
             errors[name] = str(exc)
+            return False
+        if remember:
+            lifecycle.completed_cleanup_steps.add(name)
+        return True
 
-    cleanup_payloads = list(reversed(session.pending_uart_cleanup))
-    session.pending_uart_cleanup.clear()
+    cleanup_payloads = list(reversed(lifecycle.pending_uart_cleanup))
     for index, payload in enumerate(cleanup_payloads, start=1):
-        run(
+        if run(
             f"actuator_cleanup_{index}",
             lambda payload=payload: {
                 "status": "ok",
-                "summary": f"Sent {session.log.write(payload)} actuator cleanup byte(s).",
+                "summary": f"Sent {session.services.log.write(payload)} actuator cleanup byte(s).",
                 "payload_hex": payload.hex(" "),
             },
-        )
+            remember=False,
+        ):
+            lifecycle.pending_uart_cleanup.remove(payload)
 
-    run("clear_breakpoints", session.probe.clear_all_breakpoints)
-    if hasattr(session, "conditional_breakpoints"):
-        session.conditional_breakpoints.clear()
-    run("probe_reset_halt", lambda: session.probe.reset(halt=True))
-    run("probe_resume", session.probe.resume)
-    run("probe_disconnect", session.probe.disconnect)
-    run("log_disconnect", session.log.disconnect)
-    gdb_server = getattr(session, "gdb_server", None)
-    if gdb_server is not None and hasattr(gdb_server, "stop"):
+    if run("clear_breakpoints", session.services.probe.clear_all_breakpoints):
+        session.artifacts.conditional_breakpoints.clear()
+    reset_ok = run("probe_reset_halt", lambda: session.services.probe.reset(halt=True))
+    if reset_ok:
+        run("probe_resume", session.services.probe.resume)
+    run("probe_disconnect", session.services.probe.disconnect)
+    run("log_disconnect", session.services.log.disconnect)
+    gdb_server = session.services.gdb_server
+    if hasattr(gdb_server, "stop"):
         run("gdb_server_stop", gdb_server.stop)
 
     result = {
@@ -53,7 +62,7 @@ def finish_debug_session(session: SessionState) -> dict:
         "results": results,
         "errors": errors,
     }
-    session.debug_session_finish_result = result
+    lifecycle.finish_result = result
     return result
 
 
@@ -62,11 +71,11 @@ def disconnect_all(session: SessionState) -> dict:
     errors: dict[str, str] = {}
 
     actions: dict[str, object] = {
-        "probe": session.probe.disconnect,
-        "log": session.log.disconnect,
+        "probe": session.services.probe.disconnect,
+        "log": session.services.log.disconnect,
     }
-    gdb_server = getattr(session, "gdb_server", None)
-    if gdb_server is not None and hasattr(gdb_server, "stop"):
+    gdb_server = session.services.gdb_server
+    if hasattr(gdb_server, "stop"):
         actions["gdb_server"] = gdb_server.stop
 
     for name, action in actions.items():

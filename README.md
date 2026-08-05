@@ -18,8 +18,10 @@ and GDB servers as structured tools that AI assistants can call.
 It is designed for firmware development, board bring-up, fault isolation, debugging automation,
 and AI-assisted validation.
 
-McuBuddy starts with a focused `core` MCP tool profile by default. Set
-`MCUBUDDY_TOOL_PROFILE=full` in the MCP server environment to expose the complete expert catalog.
+McuBuddy starts with 19 stable tools in the `default` toolset. Add only the domains a workflow
+needs with `MCUBUDDY_TOOLSETS=probe,diagnose` (available domains: `probe`, `diagnose`,
+`build_flash`, `rtos`, `logs`, and `experimental`). The `core` profile is the only profile;
+startup toolset selection is explicit and immutable.
 
 > [!IMPORTANT]
 > Automation does not replace engineering responsibility. Humans remain responsible for goals and
@@ -45,6 +47,9 @@ McuBuddy starts with a focused `core` MCP tool profile by default. Set
   pyOCD/J-Link GDB server lifecycles.
 - **Evidence-driven results**: Return structured target, state, and validation evidence so AI can
   continue an investigation instead of guessing code changes from symptoms alone.
+- **Actionable hardware boundaries**: Distinguish MCU limitations, firmware-inapplicable tools,
+  configuration problems, tool failures, and insufficient evidence, including impact and the next
+  safe check so unsupported paths are not debugged as firmware defects.
 
 ## 🏗️ How It Works
 
@@ -250,7 +255,7 @@ for details.
 - Chinese tool usage: [MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - Backend and hardware validation: [Support Matrix](docs/support-matrix.md)
 - Project design: [Architecture](docs/architecture.md)
-- v0.5.2 release summary: [v0.5.2 Release Notes](docs/releases/v0.5.2.md)
+- Release history: [Changelog](CHANGELOG.md)
 
 ## 🧪 Local Development
 

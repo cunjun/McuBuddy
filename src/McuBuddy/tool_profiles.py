@@ -2,74 +2,63 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Literal
+
+from .tool_safety import DEFAULT_TOOL_NAMES, TOOL_POLICIES, TOOLSET_MEMBERS
 
 
 PROFILE_ENV_VAR = "MCUBUDDY_TOOL_PROFILE"
 TOOL_PROFILE_CORE = "core"
-TOOL_PROFILE_FULL = "full"
-VALID_TOOL_PROFILES = frozenset({TOOL_PROFILE_CORE, TOOL_PROFILE_FULL})
-ToolProfileName = Literal["core", "full"]
+VALID_TOOL_PROFILES = frozenset({TOOL_PROFILE_CORE})
+ToolProfileName = Literal["core"]
+ToolStability = Literal["stable", "preview", "experimental"]
+CORE_TOOL_NAMES = DEFAULT_TOOL_NAMES
+VALID_TOOLSETS = frozenset(TOOLSET_MEMBERS)
 
 
-CORE_TOOL_NAMES = frozenset(
+@dataclass(frozen=True)
+class ToolSpec:
+    """Governance metadata for one explicitly exposed MCP tool."""
+
+    name: str
+    safety_level: str
+    toolsets: frozenset[str]
+    stability: ToolStability
+    owner: str
+    schema_version: int
+    deprecated: bool
+    default_enabled: bool = False
+
+
+TOOL_CATALOG = MappingProxyType(
     {
-        "doctor",
-        "first_contact",
-        "get_runtime_config",
-        "inspect_project_memory",
-        "write_project_memory",
-        "list_tool_safety",
-        "list_validation_records",
-        "pack_diagnose",
-        "pack_install",
-        "match_chip_name",
-        "get_target_info",
-        "list_connected_probes",
-        "configure_probe",
-        "configure_elf",
-        "elf_load",
-        "svd_load",
-        "probe_connect",
-        "disconnect_all",
-        "finish_debug_session",
-        "probe_halt",
-        "probe_resume",
-        "probe_reset",
-        "read_stopped_context",
-        "backtrace",
-        "collect_crash_evidence",
-        "collect_startup_evidence",
-        "collect_peripheral_evidence",
-        "collect_rtos_evidence",
-        "svd_read_peripheral",
-        "list_rtos_tasks",
-        "rtos_task_context",
-        "read_rtt_log",
-        "configure_log",
-        "log_connect",
-        "uart_send",
-        "uart_send_with_cleanup",
-        "uart_read_bytes",
-        "uart_exchange",
-        "log_tail",
-        "discover_keil_projects",
-        "configure_keil_project",
-        "build_project",
-        "flash_firmware",
-        "flash_image",
-        "compare_elf_to_flash",
+        name: ToolSpec(
+            name=name,
+            safety_level=policy["level"],
+            toolsets=policy["toolsets"],
+            stability=policy["stability"],
+            owner=policy["owner"],
+            schema_version=policy["schema_version"],
+            deprecated=policy["deprecated"],
+            default_enabled=policy["default_enabled"],
+        )
+        for name, policy in TOOL_POLICIES.items()
     }
 )
-
 
 @dataclass(frozen=True)
 class ToolProfile:
     name: ToolProfileName
-    enabled_tool_names: frozenset[str] | None
+    enabled_tool_names: frozenset[str]
+    selected_toolsets: frozenset[str] = frozenset()
+
+    def __post_init__(self) -> None:
+        if self.enabled_tool_names is None:
+            raise ValueError("Tool profiles require an explicit tool allowlist.")
 
     def allows(self, tool_name: str) -> bool:
-        return self.enabled_tool_names is None or tool_name in self.enabled_tool_names
+        return tool_name in self.enabled_tool_names
 
 
 class ToolProfileError(ValueError):
@@ -81,20 +70,35 @@ def _normalize_profile(value: str) -> ToolProfileName:
     if normalized in VALID_TOOL_PROFILES:
         return normalized  # type: ignore[return-value]
     options = ", ".join(sorted(VALID_TOOL_PROFILES))
-    raise ToolProfileError(
-        f"Unknown McuBuddy tool profile {value!r}. Valid values are: {options}."
-    )
+    raise ToolProfileError(f"Unknown McuBuddy tool profile {value!r}. Valid values are: {options}.")
 
 
 def resolve_tool_profile(
     explicit: str | None = None,
     *,
     environ: dict[str, str] | None = None,
+    toolsets: list[str] | tuple[str, ...] | frozenset[str] | None = None,
 ) -> ToolProfile:
     value = explicit
     if value is None:
         env = os.environ if environ is None else environ
         value = env.get(PROFILE_ENV_VAR, TOOL_PROFILE_CORE)
     name = _normalize_profile(value)
-    enabled = None if name == TOOL_PROFILE_FULL else CORE_TOOL_NAMES
-    return ToolProfile(name=name, enabled_tool_names=enabled)
+    selected = frozenset(item.strip().lower() for item in toolsets or () if item.strip())
+    unknown = selected - VALID_TOOLSETS
+    if unknown:
+        options = ", ".join(sorted(VALID_TOOLSETS))
+        raise ToolProfileError(
+            f"Unknown McuBuddy toolset(s): {', '.join(sorted(unknown))}. "
+            f"Valid values are: {options}."
+        )
+    enabled = CORE_TOOL_NAMES
+    if selected:
+        enabled |= frozenset(
+            tool_name for tool_name, spec in TOOL_CATALOG.items() if spec.toolsets & selected
+        )
+    return ToolProfile(
+        name=name,
+        enabled_tool_names=enabled,
+        selected_toolsets=selected,
+    )

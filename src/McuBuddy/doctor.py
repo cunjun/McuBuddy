@@ -177,12 +177,12 @@ def _check_probes(config: RuntimeConfig) -> dict[str, Any]:
     try:
         session = SessionState()
         session.config = config
-        session.probe = create_probe_backend(
+        session.services.probe = create_probe_backend(
             config.probe.backend,
             jlink_dll_path=config.probe.jlink_dll_path,
             probe_rs_sidecar_path=config.probe.probe_rs_sidecar_path,
         )
-        probes = session.probe.enumerate_probes()
+        probes = session.services.probe.enumerate_probes()
     except Exception as exc:
         return {
             "name": "probe-discovery",

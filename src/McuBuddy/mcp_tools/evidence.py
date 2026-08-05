@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..mcp_execution import SessionToolRegistrar
+from ..mcp_execution import require_session_tool_registrar
 from ..session import SessionState
 from ..tools.evidence import collect_crash_evidence as _collect_crash_evidence
 from ..tools.evidence import collect_peripheral_evidence as _collect_peripheral_evidence
@@ -7,8 +9,9 @@ from ..tools.evidence import collect_rtos_evidence as _collect_rtos_evidence
 from ..tools.evidence import collect_startup_evidence as _collect_startup_evidence
 
 
-def register_evidence_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_evidence_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def collect_crash_evidence(
         auto_halt: bool = True,
         include_logs: bool = True,
@@ -28,7 +31,7 @@ def register_evidence_tools(mcp, session: SessionState) -> None:
             stack_snapshot_bytes=stack_snapshot_bytes,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def collect_startup_evidence(
         reset_and_halt: bool = False,
         include_logs: bool = True,
@@ -44,7 +47,7 @@ def register_evidence_tools(mcp, session: SessionState) -> None:
             resolve_symbols=resolve_symbols,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def collect_peripheral_evidence(
         peripheral: str,
         include_rcc: bool = True,
@@ -58,7 +61,7 @@ def register_evidence_tools(mcp, session: SessionState) -> None:
             include_gpio=include_gpio,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def collect_rtos_evidence(
         task_name: str | None = None,
         max_priorities: int = 32,

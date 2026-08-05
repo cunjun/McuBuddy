@@ -23,7 +23,7 @@ def read_stack_usage(
     Reports the minimum untouched stack bytes that remain from the low address.
     The standard Cortex-M TCB layout does not reliably expose the total stack size.
     """
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
 
     try:
@@ -54,7 +54,7 @@ def read_stack_usage(
             offset = 0
             while offset < 65536:
                 try:
-                    raw = session.probe.read_memory(stack_base + offset, 256)
+                    raw = session.services.probe.read_memory(stack_base + offset, 256)
                     scan_started = True
                 except Exception:
                     break

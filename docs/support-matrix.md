@@ -10,12 +10,18 @@ page as the human-readable summary.
 
 | Profile | Startup selection | Intended use | Validation status |
 |---------|-------------------|--------------|-------------------|
-| `core` | Default, or `MCUBUDDY_TOOL_PROFILE=core` | Common bring-up, structured evidence packages, peripheral/RTOS/log inspection, and build/flash/verify loops | Contract covered by automated tests; real-board profile comparison still needs a hardware run |
-| `full` | `MCUBUDDY_TOOL_PROFILE=full` | Complete expert catalog, including low-level writes, advanced stepping, GDB server lifecycle, legacy diagnosis, and experimental trace paths | Preserves the v0.5.x catalog plus evidence package tools |
+| `core` | Default, or `MCUBUDDY_TOOL_PROFILE=core` | 19 stable discovery, configuration, connection, lifecycle, and stopped-context tools | Contract covered by automated tests; real-board profile comparison still needs a hardware run |
+| Selected toolsets | `MCUBUDDY_TOOLSETS=probe,diagnose,...` | Explicit domain catalog, including only the low-level or expert capabilities requested at startup | Toolset membership and registration contracts are covered by automated tests |
 
-The active profile is fixed when the MCP server starts. `list_tool_safety()` reports only visible
+With `core`, set `MCUBUDDY_TOOLSETS` to a comma-separated selection from `probe`, `diagnose`,
+`build_flash`, `rtos`, `logs`, and `experimental`. The `default` toolset is always present. The
+active selection is fixed when the MCP server starts. `list_tool_safety()` reports only visible
 tools by default; `list_tool_safety(include_hidden=true)` exposes safety metadata for the complete
 catalog without changing the active MCP session.
+
+The catalog is fail-closed: adding a decorated callback does not expose it in either profile until
+the tool has an explicit policy and catalog entry. Catalog metadata also reports the toolsets,
+stability, and default visibility used to govern future profile composition.
 
 Runtime configuration applies defaults, TOML, environment variables, then CLI overrides. Memory,
 flash, file-path, and RTT scan limits are enforced before backend calls; a supported backend does
@@ -28,11 +34,11 @@ not imply that a blocked operation is authorized by the active configuration.
 | Probe connect / halt / reset / resume / step | Yes | Yes | Hardware-validated on STM32L496VETx and STM32F103C8 |
 | Source-level debug | Yes | Yes | `run_to_function`, `run_to_source`, `source_step`, `step_over`, `step_out` |
 | Breakpoints / watchpoints | Yes | Yes | Hardware-validated on both main boards |
-| Memory / register access | Yes | Yes | Includes FPU and fault registers |
+| Memory / register access | Yes | Yes | FPU and MPU results remain target-dependent; cores without them return `hardware_limit` |
 | Flash erase / program / verify | Yes | Yes | Validated on scratch-sector workflows and active firmware images |
-| RTT | Yes | Yes | J-Link uses native RTT first; pyOCD uses scan-based path |
-| RTOS task listing / context | Yes | Partial | Primary full validation done on STM32L496VETx + ST-Link; J-Link path is not yet equivalently validated |
-| GDB server lifecycle | Yes | Yes | pyOCD GDB server and J-Link GDB server both validated |
+| RTT | Yes | Yes | J-Link uses native RTT first; scan fallback is clipped to known target RAM and reports firmware without RTT separately |
+| RTOS task listing / context | Yes | Partial | Requires matching FreeRTOS symbols; bare-metal firmware returns `firmware_not_applicable` |
+| GDB server lifecycle | Yes | Yes | Startup requires both a live child process and a listening TCP port; later exits retain code and log evidence |
 | DWT cycle counter | No current public path | Yes | Hardware-validated on STM32F103C8 + J-Link |
 | SWO log read | No current public path | Partial | Backend path works; text capture depends on board wiring |
 
@@ -133,5 +139,10 @@ before flash, reset-heavy, or diagnosis workflows.
 
 - SWO remains board-dependent even when the J-Link backend path itself is working.
 - RTOS inspection assumes FreeRTOS symbols are present and consistent with the loaded ELF.
+- FPU, MPU, DWT, SWO, and ITM availability depends on both the active probe backend and the target
+  core. McuBuddy reports these hardware/configuration boundaries explicitly instead of returning
+  empty register sets as success.
+- Diagnostic conclusions require positive evidence. A tool-induced halt or a single stationary PC
+  sample is not sufficient to claim a startup failure or HardFault.
 - Build/flash integration is still Keil UV4 centric on Windows.
 - Device patching is intentionally lightweight; it is not yet a full plugin or per-board script system.

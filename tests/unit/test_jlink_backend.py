@@ -170,7 +170,7 @@ def test_configure_probe_switches_to_jlink_backend() -> None:
     assert session.config.probe.target == "stm32l4"
     assert session.config.probe.unique_id == "123456"
     assert session.config.probe.jlink_dll_path == "E:/software/jlink/JLink_x64.dll"
-    assert session.probe.__class__.__name__ == "JLinkProbeBackend"
+    assert session.services.probe.__class__.__name__ == "JLinkProbeBackend"
 
 
 def test_configure_probe_rejects_unknown_backend() -> None:

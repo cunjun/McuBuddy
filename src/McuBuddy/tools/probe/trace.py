@@ -14,7 +14,7 @@ def log_trace(
     Stops early once max_lines unique source lines have been seen.
     Requires ELF with .debug_line loaded.
     """
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
 
     trace: list[dict] = []  # ordered unique source lines
@@ -22,9 +22,9 @@ def log_trace(
     steps = 0
     try:
         for _ in range(max_steps):
-            core = session.probe.read_core_registers()
+            core = session.services.probe.read_core_registers()
             pc = core["pc"] & ~1
-            src = session.elf.addr_to_source(pc)
+            src = session.services.elf.addr_to_source(pc)
             if src["file"] and src["line"]:
                 key = (src["file"], src["line"])
                 if key not in seen:
@@ -34,12 +34,12 @@ def log_trace(
                             "file": src["file"],
                             "line": src["line"],
                             "pc": hex(pc),
-                            "symbol": session.elf.resolve_address(pc).get("symbol"),
+                            "symbol": session.services.elf.resolve_address(pc).get("symbol"),
                         }
                     )
                     if len(trace) >= max_lines:
                         break
-            session.probe.step()
+            session.services.probe.step()
             steps += 1
     except Exception as e:
         return {
@@ -65,7 +65,7 @@ def reset_and_trace(
 ) -> dict:
     """Reset target, halt, then immediately trace execution from reset vector."""
     try:
-        session.probe.reset(halt=True)
+        session.services.probe.reset(halt=True)
     except Exception as e:
         return {"status": "error", "summary": f"Reset failed: {e}"}
     result = log_trace(session, max_steps=max_steps, max_lines=max_lines)

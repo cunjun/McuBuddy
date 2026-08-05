@@ -52,15 +52,15 @@ def run_demo() -> None:
     print()
 
     print("[1/4] Connect UART log")
-    print(json.dumps(session.log.connect(port="COM-MOCK", baudrate=115200), indent=2))
+    print(json.dumps(session.services.log.connect(port="COM-MOCK", baudrate=115200), indent=2))
     print()
 
     print("[2/4] Connect probe (pyOCD / ST-Link path)")
-    print(json.dumps(session.probe.connect(target="stm32l4"), indent=2))
+    print(json.dumps(session.services.probe.connect(target="stm32l4"), indent=2))
     print()
 
     print("[3/4] Load ELF")
-    print(json.dumps(session.elf.load("firmware.elf"), indent=2))
+    print(json.dumps(session.services.elf.load("firmware.elf"), indent=2))
     print()
 
     print("[4/4] Diagnose startup failure")
@@ -90,9 +90,9 @@ def run_conditional_breakpoint_demo() -> None:
     """
     # Use the r0-counter probe so we can demonstrate real skip-hit behaviour.
     session = MockSessionState()
-    session.probe = _R0CounterProbe()
-    session.probe.connect(target="stm32l4")
-    session.elf.load("firmware.elf")
+    session.services.probe = _R0CounterProbe()
+    session.services.probe.connect(target="stm32l4")
+    session.services.elf.load("firmware.elf")
 
     print("== Conditional breakpoint demo ==")
     print("Scenario: halt at sensor_init only when r0 >= 3 (3rd+ retry).")
@@ -123,7 +123,7 @@ def run_conditional_breakpoint_demo() -> None:
 
     print("[4/4] Clear conditional breakpoint")
     print(json.dumps(clear_breakpoint(session, address=bp_addr, confirm=True), indent=2))
-    print("conditional_breakpoints after clear:", session.conditional_breakpoints)
+    print("conditional_breakpoints after clear:", session.artifacts.conditional_breakpoints)
 
 
 if __name__ == "__main__":

@@ -24,9 +24,9 @@ def _make_session(memory: dict[int, int], sp: int) -> MagicMock:
     probe.read_core_registers.return_value = {"sp": sp, "pc": 0, "lr": 0, "xpsr": 0}
 
     session = MagicMock()
-    session.probe = probe
-    session.elf.is_loaded = False
-    session.elf.resolve_symbol.side_effect = AttributeError("no ELF")
+    session.services.probe = probe
+    session.services.elf.is_loaded = False
+    session.services.elf.resolve_symbol.side_effect = AttributeError("no ELF")
     return session
 
 
@@ -54,7 +54,7 @@ def test_probe_not_connected():
     probe.read_memory.side_effect = RuntimeError("no probe")
 
     session = MagicMock()
-    session.probe = probe
+    session.services.probe = probe
 
     result = diagnose_stack_overflow(session)
     assert result["status"] == "error"
@@ -73,7 +73,7 @@ def test_vtor_read_failure():
     probe.read_memory.side_effect = read_memory
 
     session = MagicMock()
-    session.probe = probe
+    session.services.probe = probe
 
     result = diagnose_stack_overflow(session)
     assert result["status"] == "error"
