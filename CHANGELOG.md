@@ -1,21 +1,32 @@
 # Changelog
 
-## 0.5.2 - 2026-07-20
-
-### Changed
-- Switched the default MCP tool profile to `core`, exposing a smaller evidence-first tool set.
-- Replaced the aggregate compatibility profile with explicit `MCUBUDDY_TOOLSETS` domain selection for
-  the new evidence collectors.
-- Made `list_tool_safety` report the active profile and hide non-exposed tool metadata by default.
+## 0.6.0 - 2026-08-05
 
 ### Added
+- Added project discovery and persistent project memory so debugging sessions can recover target
+  context without repeating first-contact setup.
+- Added probe-rs support for ESP32 flashing, RTT capture, and post-debug cleanup.
+- Added structured CLI, doctor, configuration, installation, package-management, and hardware
+  evidence workflows.
 - Added `collect_crash_evidence`, `collect_startup_evidence`, `collect_peripheral_evidence`, and
   `collect_rtos_evidence` as structured evidence package entry points.
-- Added a repeatable GPT-5.6 tool-surface evaluation scenario file and baseline notes.
+- Added a repeatable GPT-5.6 tool-surface evaluation scenario and baseline notes.
 
-### Migration
-- This is a breaking default-behavior change for alpha users. Existing clients that relied on the
-  legacy 0.5.x workflows should select the required domains with `MCUBUDDY_TOOLSETS` in their MCP server environment.
+### Changed
+- Unified MCP tool registration around a generated catalog, a constrained default tool surface,
+  and explicit opt-in toolsets for advanced debugging domains.
+- Made `list_tool_safety` report the active tool configuration while hiding non-exposed tool
+  metadata by default.
+- Reworked session execution and lifecycle handling to serialize shared hardware access and safely
+  release probes, log channels, GDB servers, and background workers.
+- Consolidated the English and Chinese project guides, tool references, and bundled Codex skill
+  around the current McuBuddy architecture.
+
+### Fixed
+- Prevented unsupported hardware capabilities from being reported as available and tightened MCU
+  diagnosis evidence requirements.
+- Corrected GDB server startup and shutdown behavior across supported probe backends.
+- Preserved upstream attribution while documenting McuBuddy's subsequent extensions.
 
 ## 0.5.1 - 2026-07-20
 

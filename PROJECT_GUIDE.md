@@ -2,7 +2,7 @@
 
 **English** | [中文](PROJECT_GUIDE_zh.md)
 
-> Project version: 0.5.2
+> Project version: 0.6.0
 >
 > This is the English system-level guide to McuBuddy. When features, the CLI,
 > MCP tools, architecture, or the Skill change, review and update this file and
