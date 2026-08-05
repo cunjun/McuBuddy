@@ -4,7 +4,7 @@ import asyncio
 
 from McuBuddy.server import create_server
 from McuBuddy.session import SessionState
-from McuBuddy.tool_profiles import CORE_TOOL_NAMES
+from McuBuddy.tool_profiles import CORE_TOOL_NAMES, TOOL_CATALOG
 
 
 def test_default_server_registers_exact_core_tool_set() -> None:
@@ -17,15 +17,17 @@ def test_default_server_registers_exact_core_tool_set() -> None:
     assert "probe_write_memory" not in app._tool_manager._tools
 
 
-def test_full_server_registers_legacy_tools_plus_evidence() -> None:
-    app = create_server(SessionState(), tool_profile="full")
+def test_selected_toolset_registers_only_its_domain_plus_core() -> None:
+    app = create_server(SessionState(), toolsets=["diagnose"])
     names = set(app._tool_manager._tools)
 
-    assert len(names) == 118
+    expected = CORE_TOOL_NAMES | {
+        name for name, spec in TOOL_CATALOG.items() if "diagnose" in spec.toolsets
+    }
+    assert names == expected
     assert "diagnose" in names
-    assert "run_debug_loop" in names
-    assert "probe_write_memory" in names
-    assert CORE_TOOL_NAMES.issubset(names)
+    assert "run_debug_loop" not in names
+    assert "probe_write_memory" not in names
 
 
 def test_server_registers_core_plus_selected_toolsets_at_startup() -> None:

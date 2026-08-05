@@ -17,7 +17,7 @@ from .tool_profiles import VALID_TOOLSETS
 
 
 class ServerConfig(BaseModel):
-    tool_profile: Literal["core", "full"] = "core"
+    tool_profile: Literal["core"] = "core"
     toolsets: list[str] = Field(default_factory=list)
 
     @field_validator("toolsets")

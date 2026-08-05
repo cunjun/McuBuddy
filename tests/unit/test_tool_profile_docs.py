@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-from McuBuddy.tool_profiles import CORE_TOOL_NAMES
+from McuBuddy.tool_profiles import CORE_TOOL_NAMES, TOOL_CATALOG
 from McuBuddy.tool_catalog_docs import render_tool_catalog_markdown
 
 
@@ -25,7 +25,7 @@ def test_generated_tool_catalog_groups_every_public_tool() -> None:
     assert "## diagnose" in catalog
     assert "## experimental" in catalog
     assert "`diagnose`" in catalog
-    assert sum(line.startswith("| `") for line in catalog.splitlines()) == 118
+    assert sum(line.startswith("| `") for line in catalog.splitlines()) == len(TOOL_CATALOG)
 
 
 def test_evaluation_scenarios_are_parseable_and_complete() -> None:
@@ -44,12 +44,11 @@ def test_evaluation_scenarios_are_parseable_and_complete() -> None:
     assert "executed: false" in text
 
 
-def test_project_guides_document_core_and_full_profiles() -> None:
+def test_project_guides_document_core_and_explicit_toolsets() -> None:
     for relative_path in ["PROJECT_GUIDE.md", "PROJECT_GUIDE_zh.md"]:
         guide = (ROOT / relative_path).read_text(encoding="utf-8")
-        assert "MCUBUDDY_TOOL_PROFILE" in guide
         assert "core" in guide
-        assert "full" in guide
+        assert "MCUBUDDY_TOOLSETS" in guide
 
 
 def test_documented_core_tools_match_code_allowlist() -> None:
@@ -85,7 +84,6 @@ def test_skill_marks_every_hidden_tool_call_with_a_startup_boundary() -> None:
             if (
                 tool_name not in CORE_TOOL_NAMES
                 and "toolset" not in line.lower()
-                and "full-only" not in line.lower()
             ):
                 unmarked.append(f"{line_number}:{tool_name}")
 

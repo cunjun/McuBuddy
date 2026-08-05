@@ -188,7 +188,7 @@ def test_flash_image_tool_reads_only_an_allowed_confirmed_file(tmp_path) -> None
     config.flash.allow_erase = True
     config.flash.allow_program = True
     config.security.allowed_file_paths = [str(tmp_path)]
-    session = SimpleNamespace(probe=probe, config=config)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe), config=config)
 
     flash_image = getattr(probe_tools, "flash_image", None)
     assert callable(flash_image), "probe tools must expose flash_image"
@@ -226,7 +226,7 @@ def test_flash_image_tool_blocks_before_reading_or_touching_probe(tmp_path) -> N
     config.flash.allow_erase = True
     config.flash.allow_program = True
     config.security.allowed_file_paths = [str(allowed)]
-    session = SimpleNamespace(probe=probe, config=config)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe), config=config)
 
     flash_image = getattr(probe_tools, "flash_image", None)
     assert callable(flash_image), "probe tools must expose flash_image"
@@ -252,7 +252,7 @@ def test_flash_image_tool_reports_unsupported_backend_before_reading_file(tmp_pa
     config.flash.allow_erase = True
     config.flash.allow_program = True
     config.probe.backend = "jlink"
-    session = SimpleNamespace(probe=probe, config=config)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe), config=config)
 
     result = probe_tools.flash_image(
         session,
@@ -303,7 +303,7 @@ def test_program_flash_converts_list_and_verifies() -> None:
             "payload": data,
         }
     )
-    session = SimpleNamespace(probe=probe)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe))
 
     result = program_flash(
         session,
@@ -322,7 +322,7 @@ def test_erase_flash_requires_confirmation_before_touching_probe() -> None:
         calls=[],
         erase_flash=lambda **kwargs: probe.calls.append(kwargs),
     )
-    session = SimpleNamespace(probe=probe)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe))
 
     result = erase_flash(session, chip_erase=True)
 
@@ -336,7 +336,7 @@ def test_program_flash_requires_confirmation_before_touching_probe() -> None:
         calls=[],
         program_flash=lambda **kwargs: probe.calls.append(kwargs),
     )
-    session = SimpleNamespace(probe=probe)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe))
 
     result = program_flash(session, address=0x08000000, data=[1, 2, 3])
 
@@ -370,7 +370,7 @@ def test_verify_flash_tool_converts_list_input() -> None:
             "payload": data,
         }
     )
-    session = SimpleNamespace(probe=probe)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe))
 
     result = verify_flash(session, address=0x08000000, data=[0xAA, 0x55])
 

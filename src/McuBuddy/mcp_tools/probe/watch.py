@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from ...mcp_execution import SessionToolRegistrar
+from ...mcp_execution import require_session_tool_registrar
 from ...session import SessionState
 from ...tools import probe as probe_tools
 
 
-def register_probe_watch_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_probe_watch_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def probe_set_watchpoint(
         address: int,
         size: int = 4,
@@ -24,25 +27,25 @@ def register_probe_watch_tools(mcp, session: SessionState) -> None:
             session, address=address, size=size, watch_type=watch_type, confirm=confirm
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_remove_watchpoint(address: int, confirm: bool = False) -> dict:
         """Remove a hardware watchpoint at the given address."""
         return probe_tools.remove_watchpoint(session, address=address, confirm=confirm)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_clear_all_watchpoints(confirm: bool = False) -> dict:
         """Remove all hardware watchpoints."""
         return probe_tools.clear_all_watchpoints(session, confirm=confirm)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_read_registers() -> dict:
         return probe_tools.read_registers(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_read_fpu_registers() -> dict:
         return probe_tools.read_fpu_registers(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def read_cycle_counter(confirm: bool = False) -> dict:
         """Read the DWT cycle counter when supported by the active probe backend.
 
@@ -51,7 +54,7 @@ def register_probe_watch_tools(mcp, session: SessionState) -> None:
         """
         return probe_tools.read_cycle_counter(session, confirm=confirm)
 
-    @mcp.tool()
+    @registrar.tool()
     async def read_swo_log(
         cpu_speed_hz: int,
         swo_speed_hz: int,
@@ -76,11 +79,11 @@ def register_probe_watch_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_read_mpu_regions(confirm: bool = False) -> dict:
         return probe_tools.read_mpu_regions(session, confirm=confirm)
 
-    @mcp.tool()
+    @registrar.tool()
     async def probe_continue_until(
         address: int,
         condition_symbol: str | None = None,

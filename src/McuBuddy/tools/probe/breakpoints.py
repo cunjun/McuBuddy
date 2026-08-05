@@ -25,10 +25,10 @@ def set_breakpoint(
         }
     resolved_symbol = None
     resolved_address = _resolve_breakpoint_address(session, symbol=symbol, address=address)
-    if symbol and session.elf.is_loaded:
+    if symbol and session.services.elf.is_loaded:
         resolved_symbol = symbol
 
-    result = session.probe.set_breakpoint(resolved_address)
+    result = session.services.probe.set_breakpoint(resolved_address)
     result["breakpoint"] = {
         "symbol": resolved_symbol,
         "address": hex(resolved_address),
@@ -43,7 +43,7 @@ def set_breakpoint(
             "condition_op": condition_op,
             "condition_value": condition_value,
         }
-        session.conditional_breakpoints[resolved_address] = cond
+        session.artifacts.conditional_breakpoints[resolved_address] = cond
         result["conditional"] = True
         result["condition"] = cond
         cond_target = (
@@ -68,12 +68,12 @@ def clear_breakpoint(
     if blocked := require_tool_confirmation("clear_breakpoint", confirm):
         return blocked
     resolved_address = _resolve_breakpoint_address(session, symbol=symbol, address=address)
-    result = session.probe.clear_breakpoint(resolved_address)
+    result = session.services.probe.clear_breakpoint(resolved_address)
     result["breakpoint"] = {
         "symbol": symbol,
         "address": hex(resolved_address),
     }
-    session.conditional_breakpoints.pop(resolved_address, None)
+    session.artifacts.conditional_breakpoints.pop(resolved_address, None)
     if symbol:
         result["summary"] = f"Breakpoint cleared at {symbol}."
     return result
@@ -82,14 +82,14 @@ def clear_breakpoint(
 def clear_all_breakpoints(session: SessionState, confirm: bool = False) -> dict:
     if blocked := require_tool_confirmation("clear_all_breakpoints", confirm):
         return blocked
-    result = session.probe.clear_all_breakpoints()
-    if result.get("status") != "error" and hasattr(session, "conditional_breakpoints"):
-        session.conditional_breakpoints.clear()
+    result = session.services.probe.clear_all_breakpoints()
+    if result.get("status") != "error":
+        session.artifacts.conditional_breakpoints.clear()
     return result
 
 
 def list_conditional_breakpoints(session: SessionState) -> dict:
-    entries = list(session.conditional_breakpoints.values())
+    entries = list(session.artifacts.conditional_breakpoints.values())
     return {
         "status": "ok",
         "summary": f"{len(entries)} conditional breakpoint(s) registered.",
@@ -104,19 +104,19 @@ def continue_target(
     max_condition_loops: int = 1000,
 ) -> dict:
     for loop in range(max_condition_loops):
-        result = session.probe.continue_target(
+        result = session.services.probe.continue_target(
             timeout_seconds=timeout_seconds,
             poll_interval_seconds=max(poll_interval_ms, 1) / 1000.0,
         )
         pc_hex = result.get("pc")
-        if pc_hex and session.elf.is_loaded:
-            resolved = session.elf.resolve_address(int(pc_hex, 16))
+        if pc_hex and session.services.elf.is_loaded:
+            resolved = session.services.elf.resolve_address(int(pc_hex, 16))
             result["symbol"] = resolved["symbol"]
             result["source"] = resolved["source"]
 
-        if pc_hex and getattr(session, "conditional_breakpoints", None):
+        if pc_hex and session.artifacts.conditional_breakpoints:
             pc = int(pc_hex, 16) & ~1
-            cond = session.conditional_breakpoints.get(pc)
+            cond = session.artifacts.conditional_breakpoints.get(pc)
             if cond and not _evaluate_condition(session, cond):
                 result["_condition_skipped"] = True
                 continue

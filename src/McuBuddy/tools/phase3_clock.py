@@ -10,7 +10,7 @@ from .phase3_common import _probe_is_connected
 
 
 def diagnose_clock_issue(session: SessionState) -> dict[str, Any]:
-    if not session.svd.is_loaded:
+    if not session.services.svd.is_loaded:
         return {
             "status": "error",
             "summary": "No SVD file loaded. Call svd_load first.",
@@ -22,7 +22,7 @@ def diagnose_clock_issue(session: SessionState) -> dict[str, Any]:
             "summary": "Probe not connected. Call probe_connect or connect_with_config first.",
         }
 
-    rcc = session.svd._peripheral_map.get("RCC")
+    rcc = session.services.svd._peripheral_map.get("RCC")
     if rcc is None:
         return {
             "status": "error",
@@ -39,7 +39,7 @@ def diagnose_clock_issue(session: SessionState) -> dict[str, Any]:
             continue
         addr = rcc.base_address + reg.address_offset
         try:
-            raw = session.probe.read_memory(addr, 4)
+            raw = session.services.probe.read_memory(addr, 4)
             register_values[reg_name] = int.from_bytes(raw, "little")
         except Exception as exc:
             return {

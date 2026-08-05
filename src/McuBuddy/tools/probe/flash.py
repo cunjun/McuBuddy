@@ -28,7 +28,7 @@ def erase_flash(
     if blocked := ensure_flash_erase_allowed(runtime_config_for(session)):
         return blocked
     try:
-        return session.probe.erase_flash(
+        return session.services.probe.erase_flash(
             start_address=start_address,
             end_address=end_address,
             chip_erase=chip_erase,
@@ -53,7 +53,7 @@ def program_flash(
         payload = bytes(data) if not isinstance(data, bytes) else data
         if blocked := ensure_flash_program_allowed(runtime_config_for(session), len(payload)):
             return blocked
-        return session.probe.program_flash(address=address, data=payload, verify=verify)
+        return session.services.probe.program_flash(address=address, data=payload, verify=verify)
     except Exception as e:
         return {
             "status": "error",
@@ -77,7 +77,7 @@ def flash_image(
     config = runtime_config_for(session)
     if blocked := ensure_flash_erase_allowed(config):
         return blocked
-    if not probe_supports(session.probe, ProbeCapability.FLASH_IMAGE):
+    if not probe_supports(session.services.probe, ProbeCapability.FLASH_IMAGE):
         return {
             "status": "error",
             "summary": "The configured probe backend does not support transactional image flashing.",
@@ -97,7 +97,7 @@ def flash_image(
             return blocked
         if image_path.stat().st_size == 0:
             raise ValueError("Firmware image must not be empty.")
-        if callable(flash_file := getattr(session.probe, "flash_file", None)):
+        if callable(flash_file := getattr(session.services.probe, "flash_file", None)):
             result = flash_file(
                 str(image_path),
                 address=address,
@@ -107,7 +107,7 @@ def flash_image(
             )
         else:
             payload = image_path.read_bytes()
-            result = session.probe.flash_image(
+            result = session.services.probe.flash_image(
                 address=address,
                 data=payload,
                 erase_mode=erase_mode,
@@ -135,7 +135,7 @@ def verify_flash(
         payload = bytes(data) if not isinstance(data, bytes) else data
         if blocked := ensure_flash_payload_size_allowed(runtime_config_for(session), len(payload)):
             return blocked
-        return session.probe.verify_flash(address=address, data=payload)
+        return session.services.probe.verify_flash(address=address, data=payload)
     except Exception as e:
         return {
             "status": "error",

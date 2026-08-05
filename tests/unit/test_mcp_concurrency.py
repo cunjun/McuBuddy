@@ -9,6 +9,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from McuBuddy.server import create_server
 from McuBuddy.session import SessionState
+from McuBuddy.tool_profiles import resolve_tool_profile
 
 
 class _BlockingProbe:
@@ -76,9 +77,11 @@ async def _run_tool(app, name: str, arguments: dict | None = None):
 
 
 def test_execution_boundary_preserves_tool_registration_contract() -> None:
-    app = create_server(SessionState(), tool_profile="full")
+    app = create_server(SessionState(), toolsets=["probe"])
 
-    assert len(app._tool_manager._tools) == 118
+    assert set(app._tool_manager._tools) == resolve_tool_profile(
+        "core", toolsets=["probe"]
+    ).enabled_tool_names
     assert app._tool_manager.get_tool("probe_reset").parameters == {
         "properties": {
             "halt": {"default": False, "title": "Halt", "type": "boolean"},
@@ -92,7 +95,7 @@ def test_blocking_session_tool_does_not_block_metadata_query() -> None:
     async def scenario() -> bool:
         session = SessionState()
         probe = _ControlledProbe()
-        session.probe = probe
+        session.services.probe = probe
         app = create_server(session, toolsets=["probe"])
 
         halt_task = asyncio.create_task(_run_tool(app, "probe_halt"))
@@ -111,10 +114,10 @@ def test_different_sessions_can_execute_blocking_tools_in_parallel() -> None:
     async def scenario() -> tuple[int, int]:
         first_session = SessionState()
         first_probe = _ControlledProbe()
-        first_session.probe = first_probe
+        first_session.services.probe = first_probe
         second_session = SessionState()
         second_probe = _ControlledProbe()
-        second_session.probe = second_probe
+        second_session.services.probe = second_probe
         first_app = create_server(first_session, toolsets=["probe"])
         second_app = create_server(second_session, toolsets=["probe"])
 
@@ -139,7 +142,7 @@ def test_same_session_serializes_blocking_tools() -> None:
     async def scenario() -> int:
         session = SessionState()
         probe = _BlockingProbe(delay_seconds=0.05)
-        session.probe = probe
+        session.services.probe = probe
         app = create_server(session, toolsets=["probe"])
 
         await asyncio.gather(
@@ -155,7 +158,7 @@ def test_execution_boundary_applies_to_other_session_tools() -> None:
     async def scenario() -> bool:
         session = SessionState()
         probe = _ControlledProbe()
-        session.probe = probe
+        session.services.probe = probe
         app = create_server(session, toolsets=["probe"])
 
         resume_task = asyncio.create_task(_run_tool(app, "probe_resume"))
@@ -174,7 +177,7 @@ def test_cancellation_keeps_session_locked_until_worker_finishes() -> None:
     async def scenario() -> int:
         session = SessionState()
         probe = _ControlledProbe()
-        session.probe = probe
+        session.services.probe = probe
         app = create_server(session, toolsets=["probe"])
 
         first = asyncio.create_task(_run_tool(app, "probe_halt"))
@@ -198,7 +201,7 @@ def test_cancellation_keeps_session_locked_until_worker_finishes() -> None:
 def test_session_lock_is_released_after_worker_error() -> None:
     async def scenario() -> dict:
         session = SessionState()
-        session.probe = _FailingProbe()
+        session.services.probe = _FailingProbe()
         app = create_server(session, toolsets=["probe"])
 
         with pytest.raises(ToolError, match="probe failed"):
@@ -218,7 +221,7 @@ def test_backend_switch_waits_for_active_session_operation(monkeypatch) -> None:
     async def scenario() -> bool:
         session = SessionState()
         current = _ControlledProbe()
-        session.probe = current
+        session.services.probe = current
         app = create_server(session, toolsets=["probe"])
 
         halt = asyncio.create_task(_run_tool(app, "probe_halt"))

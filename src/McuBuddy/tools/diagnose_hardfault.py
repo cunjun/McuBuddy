@@ -18,7 +18,7 @@ def diagnose_hardfault(
     suspected_stage: str | None = None,
 ) -> dict:
     if auto_halt:
-        session.probe.halt()
+        session.services.probe.halt()
 
     context = collect_diagnostic_context(
         session,
@@ -37,7 +37,7 @@ def diagnose_hardfault(
 
     stack_snapshot = StackSnapshot()
     if include_stack_snapshot:
-        raw = session.probe.read_memory(core["sp"], stack_snapshot_bytes)
+        raw = session.services.probe.read_memory(core["sp"], stack_snapshot_bytes)
         stack_snapshot = StackSnapshot(
             included=True,
             start_address=hex(core["sp"]),

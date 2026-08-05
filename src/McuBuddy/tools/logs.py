@@ -10,11 +10,11 @@ _MAX_UART_WRITE_BYTES = 64 * 1024
 
 
 def connect_log(session: SessionState, port: str, baudrate: int = 115200) -> dict:
-    return session.log.connect(port=port, baudrate=baudrate)
+    return session.services.log.connect(port=port, baudrate=baudrate)
 
 
 def disconnect_log(session: SessionState) -> dict:
-    return session.log.disconnect()
+    return session.services.log.disconnect()
 
 
 def uart_send(
@@ -24,7 +24,7 @@ def uart_send(
 ) -> dict:
     payload = _encode_uart_data(data, data_format)
 
-    bytes_sent = session.log.write(payload)
+    bytes_sent = session.services.log.write(payload)
     return {
         "status": "ok",
         "summary": f"Sent {bytes_sent} byte(s) over UART.",
@@ -44,8 +44,9 @@ def uart_send_with_cleanup(
 ) -> dict:
     cleanup_payload = _encode_uart_data(cleanup_data, cleanup_data_format)
     result = uart_send(session, data=data, data_format=data_format)
-    session.pending_uart_cleanup.append(cleanup_payload)
-    session.debug_session_finish_result = None
+    session.lifecycle.pending_uart_cleanup.append(cleanup_payload)
+    session.lifecycle.finish_result = None
+    session.lifecycle.completed_cleanup_steps.clear()
     result["cleanup_registered"] = True
     result["cleanup_payload_hex"] = cleanup_payload.hex(" ")
     return result
@@ -81,7 +82,7 @@ def _read_uart_evidence(
     max_bytes: int,
     idle_timeout_ms: int,
 ) -> tuple[bytes, dict]:
-    evidence = session.log.read_bytes(
+    evidence = session.services.log.read_bytes(
         max_bytes=max_bytes,
         timeout_ms=timeout_ms,
         idle_timeout_ms=idle_timeout_ms,
@@ -101,7 +102,7 @@ def uart_exchange(
 ) -> dict:
     _validate_uart_read_limits(timeout_ms, max_bytes, idle_timeout_ms)
     payload = _encode_uart_data(data, data_format)
-    bytes_sent = session.log.write(payload)
+    bytes_sent = session.services.log.write(payload)
     response, evidence = _read_uart_evidence(
         session,
         timeout_ms=timeout_ms,
@@ -154,7 +155,7 @@ def _validate_uart_read_limits(
 
 
 def tail_logs(session: SessionState, line_count: int = 50) -> dict:
-    lines = session.log.read_recent(line_count=line_count)
+    lines = session.services.log.read_recent(line_count=line_count)
     last_meaningful = next((line for line in reversed(lines) if line.strip()), None)
     return {
         "status": "ok",

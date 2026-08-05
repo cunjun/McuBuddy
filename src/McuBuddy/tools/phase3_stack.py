@@ -26,7 +26,7 @@ def diagnose_stack_overflow(session: SessionState) -> dict[str, Any]:
 
     # Step 1: read VTOR to find vector table base
     try:
-        raw = session.probe.read_memory(0xE000ED08, 4)
+        raw = session.services.probe.read_memory(0xE000ED08, 4)
         vtor_value = int.from_bytes(raw, "little")
     except Exception as exc:
         return {"status": "error", "summary": f"Failed to read VTOR (0xE000ED08): {exc}"}
@@ -35,7 +35,7 @@ def diagnose_stack_overflow(session: SessionState) -> dict[str, Any]:
 
     # Step 2: word 0 of the vector table = initial SP at reset
     try:
-        raw = session.probe.read_memory(vector_table_base, 4)
+        raw = session.services.probe.read_memory(vector_table_base, 4)
         initial_sp = int.from_bytes(raw, "little")
     except Exception as exc:
         return {
@@ -45,7 +45,7 @@ def diagnose_stack_overflow(session: SessionState) -> dict[str, Any]:
 
     # Step 3: current SP from core registers
     try:
-        regs = session.probe.read_core_registers()
+        regs = session.services.probe.read_core_registers()
         current_sp = regs["sp"]
     except Exception as exc:
         return {"status": "error", "summary": f"Failed to read core registers: {exc}"}
@@ -59,7 +59,7 @@ def diagnose_stack_overflow(session: SessionState) -> dict[str, Any]:
     overflow_detected: bool | None = None
     stack_bottom: int | None = None
     try:
-        result = session.elf.resolve_symbol("_Min_Stack_Size")
+        result = session.services.elf.resolve_symbol("_Min_Stack_Size")
         if isinstance(result, dict) and result.get("address") is not None:
             min_stack_size = int(result["address"], 16)
             stack_allocated_bytes = min_stack_size
@@ -70,7 +70,7 @@ def diagnose_stack_overflow(session: SessionState) -> dict[str, Any]:
 
     if stack_bottom is None:
         try:
-            result = session.elf.resolve_symbol("Stack_Mem")
+            result = session.services.elf.resolve_symbol("Stack_Mem")
             if (
                 isinstance(result, dict)
                 and result.get("address") is not None

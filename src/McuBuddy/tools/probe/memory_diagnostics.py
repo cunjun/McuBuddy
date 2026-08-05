@@ -12,13 +12,13 @@ def diagnose_memory_corruption(
     Checks: SP vs stack bounds, stack canary high-water mark, heap boundary patterns.
     stack_canary: 4-byte fill pattern used to initialize unused stack (default 0xCCCCCCCC).
     """
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
 
     evidence: list[str] = []
 
     def _resolve_addr(name: str) -> int | None:
-        r = session.elf.resolve_symbol(name)
+        r = session.services.elf.resolve_symbol(name)
         return int(r["address"], 16) if r["address"] is not None else None
 
     # --- Stack bounds ---
@@ -47,7 +47,7 @@ def diagnose_memory_corruption(
 
     # --- Current SP ---
     try:
-        core = session.probe.read_core_registers()
+        core = session.services.probe.read_core_registers()
         current_sp = core["sp"]
     except Exception as e:
         return {"status": "error", "summary": f"Failed to read registers: {e}"}
@@ -72,7 +72,7 @@ def diagnose_memory_corruption(
         # Canary scan: read from bottom up, find first non-canary word
         scan_size = min(stack_size, 8192)
         try:
-            raw = session.probe.read_memory(stack_bottom, scan_size)
+            raw = session.services.probe.read_memory(stack_bottom, scan_size)
             canary_bytes = stack_canary.to_bytes(4, "little")
             high_water: int | None = None
             for i in range(0, len(raw) - 3, 4):
@@ -131,7 +131,7 @@ def diagnose_memory_corruption(
             if addr is None:
                 continue
             try:
-                chunk = session.probe.read_memory(addr, 16)
+                chunk = session.services.probe.read_memory(addr, 16)
                 heap_info[f"{label}_16_bytes_hex"] = chunk.hex()
                 if len(chunk) >= 4:
                     u32 = int.from_bytes(chunk[:4], "little")

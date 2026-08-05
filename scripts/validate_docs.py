@@ -10,7 +10,7 @@ from pathlib import Path
 
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 IDENTIFIER_RE = re.compile(r"\b[a-z][a-z0-9_]+\b")
-PROFILE_START_RE = re.compile(r"<!--\s*mcubuddy-profile:\s*(core|full)\s*-->")
+PROFILE_START_RE = re.compile(r"<!--\s*mcubuddy-profile:\s*core\s*-->")
 PROFILE_END = "<!-- /mcubuddy-profile -->"
 GUIDE_SECTION_RE = re.compile(r"<!--\s*guide-section:([a-z0-9-]+)\s*-->")
 PROJECT_VERSION_RE = re.compile(r'(?m)^version\s*=\s*"([^"]+)"')
@@ -23,14 +23,14 @@ MACHINE_PATH_PATTERNS = (
 README_REQUIRED_TOKENS = {
     "README.md": (
         "core",
-        "MCUBUDDY_TOOL_PROFILE=full",
+        "MCUBUDDY_TOOLSETS",
         "PROJECT_GUIDE.md",
         "docs/tool-reference.md",
         "execution-changing",
     ),
     "README_zh.md": (
         "core",
-        "MCUBUDDY_TOOL_PROFILE=full",
+        "MCUBUDDY_TOOLSETS",
         "PROJECT_GUIDE_zh.md",
         "docs/tool-reference.md",
         "执行状态变化",
@@ -43,7 +43,7 @@ PROJECT_GUIDE_REQUIRED_TOKENS = (
     "SessionToolRegistrar",
     "ProbeBackend",
     "core",
-    "full",
+    "MCUBUDDY_TOOLSETS",
 )
 UPSTREAM_COPYRIGHT = "Copyright (c) 2026 SolarWang233"
 UPSTREAM_URL = "https://github.com/SolarWang233/mcudbg"
@@ -147,7 +147,6 @@ def _validate_profile_regions(
         errors.append(f"{relative}: unmatched {PROFILE_END}")
     cursor = 0
     while match := PROFILE_START_RE.search(text, cursor):
-        profile = match.group(1)
         end = text.find(PROFILE_END, match.end())
         if end == -1:
             errors.append(f"{relative}: missing {PROFILE_END}")
@@ -155,25 +154,23 @@ def _validate_profile_regions(
         if PROFILE_START_RE.search(text, match.end(), end):
             errors.append(f"{relative}: nested mcubuddy profile regions are not allowed")
         region = text[match.end() : end]
-        if profile == "core":
-            used_tools = set(IDENTIFIER_RE.findall(region)) & known_tools
-            for tool_name in sorted(used_tools - core_tools):
-                errors.append(
-                    f"{relative}: core region uses full-only tool '{tool_name}'"
-                )
+        used_tools = set(IDENTIFIER_RE.findall(region)) & known_tools
+        for tool_name in sorted(used_tools - core_tools):
+            errors.append(
+                f"{relative}: core region uses toolset-required tool '{tool_name}'"
+            )
         cursor = end + len(PROFILE_END)
     return errors
 
 
 def _load_tool_names(repo: Path) -> tuple[set[str], set[str], list[str]]:
-    profiles_path = repo / "src" / "McuBuddy" / "tool_profiles.py"
     safety_path = repo / "src" / "McuBuddy" / "tool_safety.py"
-    core_tools = _read_constant_names(profiles_path, "CORE_TOOL_NAMES")
+    core_tools = _read_constant_names(safety_path, "DEFAULT_TOOL_NAMES")
     policies = _read_constant_names(safety_path, "TOOL_POLICIES")
     concurrent = _read_constant_names(safety_path, "CONCURRENT_TOOLS")
     errors: list[str] = []
     if not core_tools:
-        errors.append("src/McuBuddy/tool_profiles.py: unable to load CORE_TOOL_NAMES")
+        errors.append("src/McuBuddy/tool_safety.py: unable to load DEFAULT_TOOL_NAMES")
     if not policies:
         errors.append("src/McuBuddy/tool_safety.py: unable to load TOOL_POLICIES")
     return core_tools | policies | concurrent, core_tools, errors

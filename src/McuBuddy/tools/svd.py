@@ -8,17 +8,17 @@ from ..tool_safety import require_tool_confirmation
 
 def svd_load(session: SessionState, svd_path: str) -> dict:
     """Load a CMSIS-SVD file for peripheral register interpretation."""
-    return session.svd.load(svd_path)
+    return session.services.svd.load(svd_path)
 
 
 def svd_list_peripherals(session: SessionState) -> dict:
     """List all peripherals defined in the loaded SVD."""
-    return session.svd.list_peripherals()
+    return session.services.svd.list_peripherals()
 
 
 def svd_get_registers(session: SessionState, peripheral: str) -> dict:
     """Return the register layout for a peripheral (no hardware read)."""
-    return session.svd.get_peripheral_registers(peripheral)
+    return session.services.svd.get_peripheral_registers(peripheral)
 
 
 def svd_read_peripheral(session: SessionState, peripheral: str) -> dict:
@@ -26,12 +26,12 @@ def svd_read_peripheral(session: SessionState, peripheral: str) -> dict:
 
     Requires probe to be connected and target to be halted.
     """
-    if not session.svd.is_loaded:
+    if not session.services.svd.is_loaded:
         return {
             "status": "error",
             "summary": "No SVD file loaded. Call svd_load first.",
         }
-    return session.svd.read_peripheral_state(peripheral, session.probe)
+    return session.services.svd.read_peripheral_state(peripheral, session.services.probe)
 
 
 def svd_write_register(
@@ -43,9 +43,9 @@ def svd_write_register(
 ) -> dict:
     if blocked := require_tool_confirmation("svd_write_register", confirm):
         return blocked
-    if not session.svd.is_loaded:
+    if not session.services.svd.is_loaded:
         return {"status": "error", "summary": "No SVD file loaded. Call svd_load first."}
-    return session.svd.write_register(peripheral, register, value, session.probe)
+    return session.services.svd.write_register(peripheral, register, value, session.services.probe)
 
 
 def svd_write_field(
@@ -58,6 +58,6 @@ def svd_write_field(
 ) -> dict:
     if blocked := require_tool_confirmation("svd_write_field", confirm):
         return blocked
-    if not session.svd.is_loaded:
+    if not session.services.svd.is_loaded:
         return {"status": "error", "summary": "No SVD file loaded. Call svd_load first."}
-    return session.svd.write_field(peripheral, register, field, value, session.probe)
+    return session.services.svd.write_field(peripheral, register, field, value, session.services.probe)

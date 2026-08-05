@@ -16,7 +16,7 @@ def _probe_is_connected(session: SessionState) -> bool:
     inaccessible even with a fully functional probe.
     """
     try:
-        session.probe.read_memory(0xE000E000, 4)
+        session.services.probe.read_memory(0xE000E000, 4)
         return True
     except Exception:
         return False

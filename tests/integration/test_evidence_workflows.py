@@ -18,8 +18,8 @@ def test_evidence_tools_are_available_in_domain_toolsets() -> None:
     assert "diagnose" in names
 
 
-def test_full_profile_keeps_diagnostics_and_evidence_tools() -> None:
-    app = create_server(SessionState(), tool_profile="full")
+def test_explicit_toolsets_compose_diagnostics_and_orchestration_tools() -> None:
+    app = create_server(SessionState(), toolsets=["diagnose", "experimental"])
 
     names = set(app._tool_manager._tools)
 

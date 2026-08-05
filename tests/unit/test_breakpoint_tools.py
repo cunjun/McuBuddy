@@ -105,21 +105,21 @@ class _FakeLog:
 
 def test_set_breakpoint_resolves_symbol_via_elf() -> None:
     session = SessionState()
-    session.probe = _FakeBreakpointProbe()
-    session.elf = _FakeElf()
+    session.services.probe = _FakeBreakpointProbe()
+    session.services.elf = _FakeElf()
 
     result = set_breakpoint(session, symbol="sensor_init", confirm=True)
 
     assert result["status"] == "ok"
     assert result["breakpoint"]["symbol"] == "sensor_init"
     assert result["breakpoint"]["address"] == "0x8001234"
-    assert 0x08001234 in session.probe.breakpoints
+    assert 0x08001234 in session.services.probe.breakpoints
 
 
 def test_continue_target_returns_symbol_context() -> None:
     session = SessionState()
-    session.probe = _FakeBreakpointProbe()
-    session.elf = _FakeElf()
+    session.services.probe = _FakeBreakpointProbe()
+    session.services.elf = _FakeElf()
 
     result = continue_target(session, timeout_seconds=1.0, poll_interval_ms=10)
 
@@ -130,9 +130,9 @@ def test_continue_target_returns_symbol_context() -> None:
 
 def test_read_stopped_context_includes_symbols_and_logs() -> None:
     session = SessionState()
-    session.probe = _FakeBreakpointProbe()
-    session.elf = _FakeElf()
-    session.log = _FakeLog()
+    session.services.probe = _FakeBreakpointProbe()
+    session.services.elf = _FakeElf()
+    session.services.log = _FakeLog()
 
     result = read_stopped_context(
         session,
@@ -150,8 +150,8 @@ def test_read_stopped_context_includes_symbols_and_logs() -> None:
 
 def test_read_stopped_context_accepts_non_cortex_register_set() -> None:
     session = SessionState()
-    session.probe = _FakeBreakpointProbe()
-    session.probe.read_core_registers = lambda: {
+    session.services.probe = _FakeBreakpointProbe()
+    session.services.probe.read_core_registers = lambda: {
         "pc": 0x42000000,
         "sp": 0x3FC80000,
     }
@@ -170,37 +170,37 @@ def test_read_stopped_context_accepts_non_cortex_register_set() -> None:
 
 def test_clear_breakpoint_and_clear_all_breakpoints() -> None:
     session = SessionState()
-    session.probe = _FakeBreakpointProbe()
-    session.elf = _FakeElf()
+    session.services.probe = _FakeBreakpointProbe()
+    session.services.elf = _FakeElf()
 
     set_breakpoint(session, symbol="sensor_init", confirm=True)
     clear_breakpoint(session, symbol="sensor_init", confirm=True)
-    assert not session.probe.breakpoints
+    assert not session.services.probe.breakpoints
 
     set_breakpoint(session, address=0x08004567, confirm=True)
     result = clear_all_breakpoints(session, confirm=True)
 
     assert result["status"] == "ok"
     assert result["cleared_count"] == 1
-    assert not session.probe.breakpoints
+    assert not session.services.probe.breakpoints
 
 
 def test_set_breakpoint_normalizes_thumb_symbol_address() -> None:
     session = SessionState()
-    session.probe = _FakeBreakpointProbe()
-    session.elf = _FakeElf()
+    session.services.probe = _FakeBreakpointProbe()
+    session.services.elf = _FakeElf()
 
     result = set_breakpoint(session, symbol="main", confirm=True)
 
     assert result["status"] == "ok"
     assert result["breakpoint"]["address"] == "0x8008804"
-    assert 0x08008804 in session.probe.breakpoints
+    assert 0x08008804 in session.services.probe.breakpoints
 
 
 def test_set_breakpoints_for_function_range_requires_confirmation() -> None:
     session = SessionState()
-    session.probe = _FakeBreakpointProbe()
-    session.elf = _FakeElf()
+    session.services.probe = _FakeBreakpointProbe()
+    session.services.elf = _FakeElf()
 
     result = set_breakpoints_for_function_range(
         session,
@@ -210,4 +210,4 @@ def test_set_breakpoints_for_function_range_requires_confirmation() -> None:
 
     assert result["status"] == "error"
     assert result["safety"]["level"] == "state-changing"
-    assert session.probe.breakpoints == set()
+    assert session.services.probe.breakpoints == set()

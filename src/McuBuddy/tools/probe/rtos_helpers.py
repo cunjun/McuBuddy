@@ -14,12 +14,12 @@ _TCB_NAME = 0x34
 
 
 def _resolve_symbol_addr(session: SessionState, name: str) -> int | None:
-    resolved = session.elf.resolve_symbol(name)
+    resolved = session.services.elf.resolve_symbol(name)
     return int(resolved["address"], 16) if resolved["address"] is not None else None
 
 
 def _read_u32(session: SessionState, address: int) -> int:
-    return int.from_bytes(session.probe.read_memory(address, 4), "little")
+    return int.from_bytes(session.services.probe.read_memory(address, 4), "little")
 
 
 def _walk_freertos_list(session: SessionState, list_addr: int) -> list[int]:
@@ -88,5 +88,5 @@ def _collect_freertos_tcb_states(
 
 
 def _read_freertos_task_name(session: SessionState, tcb_addr: int, task_name_len: int) -> str:
-    name_bytes = session.probe.read_memory(tcb_addr + _TCB_NAME, task_name_len)
+    name_bytes = session.services.probe.read_memory(tcb_addr + _TCB_NAME, task_name_len)
     return name_bytes.split(b"\x00")[0].decode("utf-8", errors="replace")

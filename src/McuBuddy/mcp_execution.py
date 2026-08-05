@@ -72,7 +72,8 @@ class SessionToolRegistrar:
                     "read-only",
                     "persistent",
                 }:
-                    self._session.debug_session_finish_result = None
+                    self._session.lifecycle.finish_result = None
+                    self._session.lifecycle.completed_cleanup_steps.clear()
                 if policy["execution"] == "concurrent":
                     return await asyncio.to_thread(_run_callback, callback, args, kwargs)
                 return await _run_serialized(self._session, callback, args, kwargs)
@@ -80,3 +81,9 @@ class SessionToolRegistrar:
             return register(execute)
 
         return decorate
+
+
+def require_session_tool_registrar(registrar: object) -> SessionToolRegistrar:
+    if not isinstance(registrar, SessionToolRegistrar):
+        raise TypeError("MCP registration groups require SessionToolRegistrar")
+    return registrar

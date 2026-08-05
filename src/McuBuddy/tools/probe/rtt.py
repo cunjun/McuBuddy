@@ -13,9 +13,9 @@ def read_rtt_log(
     search_size: int = 0x50000,
 ) -> dict:
     backend_result = None
-    if probe_supports(session.probe, ProbeCapability.RTT_READ):
+    if probe_supports(session.services.probe, ProbeCapability.RTT_READ):
         try:
-            backend_result = session.probe.read_rtt_log(channel=channel, max_bytes=max_bytes)
+            backend_result = session.services.probe.read_rtt_log(channel=channel, max_bytes=max_bytes)
         except Exception as e:
             backend_result = {"status": "error", "summary": str(e)}
         if backend_result.get("status") == "ok":
@@ -35,11 +35,11 @@ def read_rtt_log(
 
         while addr < end_addr:
             read_size = min(chunk_size, end_addr - addr)
-            data = session.probe.read_memory(addr, read_size)
+            data = session.services.probe.read_memory(addr, read_size)
             idx = data.find(magic)
             while idx != -1:
                 candidate_addr = addr + idx
-                header = session.probe.read_memory(candidate_addr, 24)
+                header = session.services.probe.read_memory(candidate_addr, 24)
                 if header[: len(magic)] == magic:
                     max_num_up = int.from_bytes(header[16:20], "little")
                     if 1 <= max_num_up <= 16:
@@ -58,7 +58,7 @@ def read_rtt_log(
                 "summary": "RTT control block not found in scanned range.",
             }
 
-        header = session.probe.read_memory(cb_addr, 24)
+        header = session.services.probe.read_memory(cb_addr, 24)
         max_num_up = int.from_bytes(header[16:20], "little")
         if not (1 <= max_num_up <= 16):
             return {
@@ -73,7 +73,7 @@ def read_rtt_log(
             }
 
         up_desc_addr = cb_addr + 24 + channel * 24
-        up_desc = session.probe.read_memory(up_desc_addr, 24)
+        up_desc = session.services.probe.read_memory(up_desc_addr, 24)
 
         p_buffer = int.from_bytes(up_desc[4:8], "little")
         size_of_buffer = int.from_bytes(up_desc[8:12], "little")
@@ -100,13 +100,13 @@ def read_rtt_log(
         raw = b""
         if to_read > 0:
             if rd_off + to_read <= size_of_buffer:
-                raw = session.probe.read_memory(p_buffer + rd_off, to_read)
+                raw = session.services.probe.read_memory(p_buffer + rd_off, to_read)
             else:
                 first_len = size_of_buffer - rd_off
                 second_len = to_read - first_len
-                raw = session.probe.read_memory(
+                raw = session.services.probe.read_memory(
                     p_buffer + rd_off, first_len
-                ) + session.probe.read_memory(p_buffer, second_len)
+                ) + session.services.probe.read_memory(p_buffer, second_len)
 
         return {
             "status": "ok",

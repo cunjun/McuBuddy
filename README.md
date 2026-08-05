@@ -20,8 +20,8 @@ and AI-assisted validation.
 
 McuBuddy starts with 19 stable tools in the `default` toolset. Add only the domains a workflow
 needs with `MCUBUDDY_TOOLSETS=probe,diagnose` (available domains: `probe`, `diagnose`,
-`build_flash`, `rtos`, `logs`, and `experimental`). `MCUBUDDY_TOOL_PROFILE=full` remains the
-compatibility option for exposing the complete governed catalog. Startup selection is immutable.
+`build_flash`, `rtos`, `logs`, and `experimental`). The `core` profile is the only profile;
+startup toolset selection is explicit and immutable.
 
 > [!IMPORTANT]
 > Automation does not replace engineering responsibility. Humans remain responsible for goals and
@@ -252,7 +252,7 @@ for details.
 - Chinese tool usage: [MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - Backend and hardware validation: [Support Matrix](docs/support-matrix.md)
 - Project design: [Architecture](docs/architecture.md)
-- v0.5.2 release summary: [v0.5.2 Release Notes](docs/releases/v0.5.2.md)
+- Release history: [Changelog](CHANGELOG.md)
 
 ## 🧪 Local Development
 

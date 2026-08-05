@@ -477,7 +477,7 @@ def test_connect_probe_forwards_probe_rs_connection_and_erase_policy() -> None:
 
     session = SessionState()
     probe = _RecordingProbe()
-    session.probe = probe
+    session.services.probe = probe
     session.config.probe.backend = "probe-rs"
     session.config.probe.probe_rs_wire_protocol = "jtag"
     session.config.probe.probe_rs_speed_khz = 5000
@@ -511,7 +511,7 @@ def test_configure_probe_records_probe_rs_sidecar_path() -> None:
     assert result["status"] == "ok"
     assert session.config.probe.backend == "probe-rs"
     assert session.config.probe.probe_rs_sidecar_path.endswith("McuBuddy-probe-sidecar.exe")
-    assert isinstance(session.probe, ProbeRsBackend)
+    assert isinstance(session.services.probe, ProbeRsBackend)
 
 
 def test_configure_probe_disconnects_old_backend_before_switch(monkeypatch) -> None:
@@ -526,11 +526,11 @@ def test_configure_probe_disconnects_old_backend_before_switch(monkeypatch) -> N
     session = SessionState()
     old_backend = _Backend()
     new_backend = _Backend()
-    session.probe = old_backend
+    session.services.probe = old_backend
     monkeypatch.setattr(configuration, "create_probe_backend", lambda *args, **kwargs: new_backend)
 
     result = configure_probe(session, backend="probe-rs")
 
     assert result["status"] == "ok"
     assert old_backend.disconnected is True
-    assert session.probe is new_backend
+    assert session.services.probe is new_backend

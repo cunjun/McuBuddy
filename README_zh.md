@@ -15,10 +15,10 @@ FreeRTOS 状态、Flash 操作和 GDB Server 统一成 AI 助手可以调用的�
 
 它适合固件开发、板卡 Bring-up、故障定位、调试自动化和 AI 辅助验证。
 
-McuBuddy 默认只启用 `default` toolset 中的 19 个稳定工具。根据工作流按需通过
+McuBuddy 默认使用 `core` 工具面，只启用 `default` toolset 中的 19 个稳定工具。根据工作流按需通过
 `MCUBUDDY_TOOLSETS=probe,diagnose` 增加领域工具；可选目录为 `probe`、`diagnose`、
-`build_flash`、`rtos`、`logs` 和 `experimental`。`MCUBUDDY_TOOL_PROFILE=full` 仅作为
-暴露全部受治理工具的兼容模式。工具集合在服务启动时确定，运行中不会动态扩大。
+`build_flash`、`rtos`、`logs` 和 `experimental`。项目不提供一次性暴露全部工具的
+兼容配置；工具集合在服务启动时确定，运行中不会动态扩大。
 
 > [!IMPORTANT]
 > 自动化不替代工程责任。人仍负责调试目标与验收标准、接线与供电安全、高风险操作授权、
@@ -123,8 +123,8 @@ pip install -e ".[dev]"
 | `logs` | UART、RTT、SWO 和日志连接 |
 | `experimental` | 预览、演示和兼容能力 |
 
-修改 toolset 后必须重启 MCP 客户端。确实需要兼容旧版完整工具面时，使用
-`MCUBUDDY_TOOL_PROFILE=full`，不要同时配置 `MCUBUDDY_TOOLSETS`。
+修改 toolset 后必须重启 MCP 客户端。只选择当前工作流需要的领域；旧版聚合工具面
+已经移除。
 
 Windows 源码环境建议显式配置虚拟环境 Python 和工作目录，详见
 [安装与首次连接](PROJECT_GUIDE_zh.md#3-安装与首次连接)。配置后重新启动 AI 客户端。
@@ -252,7 +252,7 @@ python .\skills\mcubuddy\scripts\install_skill.py --target cc --overwrite
 - MCP 工具中文用途：[MCP 工具中文参考](docs/mcp-tools-reference-zh.md)
 - 后端与硬件验证：[Support Matrix](docs/support-matrix.md)
 - 项目架构：[Architecture](docs/architecture.md)
-- v0.5.2 发布摘要：[v0.5.2 Release Notes](docs/releases/v0.5.2.md)
+- 发布历史：[Changelog](CHANGELOG.md)
 
 ## 🧪 本地开发
 

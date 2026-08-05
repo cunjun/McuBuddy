@@ -29,7 +29,7 @@ class _FakeTarget:
 
 
 def test_read_fpu_registers_keeps_float_values() -> None:
-    session = SimpleNamespace(probe=_FakeProbe())
+    session = SimpleNamespace(services=SimpleNamespace(probe=_FakeProbe()))
 
     result = read_fpu_registers(session)
 

@@ -11,7 +11,7 @@ page as the human-readable summary.
 | Profile | Startup selection | Intended use | Validation status |
 |---------|-------------------|--------------|-------------------|
 | `core` | Default, or `MCUBUDDY_TOOL_PROFILE=core` | 19 stable discovery, configuration, connection, lifecycle, and stopped-context tools | Contract covered by automated tests; real-board profile comparison still needs a hardware run |
-| `full` | `MCUBUDDY_TOOL_PROFILE=full` | Explicit expert catalog, including low-level writes, advanced stepping, GDB server lifecycle, legacy diagnosis, and preview trace paths | Preserves the governed v0.5.x catalog plus evidence package tools |
+| Selected toolsets | `MCUBUDDY_TOOLSETS=probe,diagnose,...` | Explicit domain catalog, including only the low-level or expert capabilities requested at startup | Toolset membership and registration contracts are covered by automated tests |
 
 With `core`, set `MCUBUDDY_TOOLSETS` to a comma-separated selection from `probe`, `diagnose`,
 `build_flash`, `rtos`, `logs`, and `experimental`. The `default` toolset is always present. The

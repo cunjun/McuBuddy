@@ -127,7 +127,7 @@ def test_uart_send_converts_hex_text_to_bytes(data: str) -> None:
     send = getattr(log_tools, "uart_send", None)
     assert send is not None
 
-    result = send(SimpleNamespace(log=log), data=data, data_format="hex")
+    result = send(SimpleNamespace(services=SimpleNamespace(log=log)), data=data, data_format="hex")
 
     assert log.payloads == [b"\xaa\x55\x01"]
     assert result["status"] == "ok"
@@ -140,7 +140,7 @@ def test_uart_send_encodes_text_as_utf8() -> None:
     send = getattr(log_tools, "uart_send", None)
     assert send is not None
 
-    result = send(SimpleNamespace(log=log), data="启动", data_format="text")
+    result = send(SimpleNamespace(services=SimpleNamespace(log=log)), data="启动", data_format="text")
 
     assert log.payloads == ["启动".encode("utf-8")]
     assert result["bytes_sent"] == len("启动".encode("utf-8"))
@@ -163,7 +163,7 @@ def test_uart_send_rejects_invalid_input(data: str, data_format: str, message: s
     assert send is not None
 
     with pytest.raises(ValueError, match=message):
-        send(SimpleNamespace(log=log), data=data, data_format=data_format)
+        send(SimpleNamespace(services=SimpleNamespace(log=log)), data=data, data_format=data_format)
 
     assert log.payloads == []
 
@@ -171,7 +171,7 @@ def test_uart_send_rejects_invalid_input(data: str, data_format: str, message: s
 def test_uart_send_is_a_confirmed_logs_mcp_tool() -> None:
     session = SessionState()
     log = _FakeLog()
-    session.log = log
+    session.services.log = log
     app = create_server(session, toolsets=["logs"])
 
     assert "uart_send" in app._tool_manager._tools
@@ -190,7 +190,7 @@ def test_uart_read_bytes_returns_binary_evidence() -> None:
     log = _FakeLog(b"\xb8\x47\x00\xff")
 
     result = log_tools.uart_read_bytes(
-        SimpleNamespace(log=log),
+        SimpleNamespace(services=SimpleNamespace(log=log)),
         timeout_ms=50,
         max_bytes=16,
         idle_timeout_ms=5,
@@ -213,7 +213,7 @@ def test_uart_exchange_writes_then_returns_raw_response() -> None:
     log = _FakeLog(b"\xb8\x47\x00\x03\x81")
 
     result = log_tools.uart_exchange(
-        SimpleNamespace(log=log),
+        SimpleNamespace(services=SimpleNamespace(log=log)),
         data="B8 47 00 03 01 F1 D1",
         data_format="hex",
         timeout_ms=100,
@@ -231,7 +231,7 @@ def test_uart_exchange_writes_then_returns_raw_response() -> None:
 
 def test_uart_read_and_write_limits_are_bounded() -> None:
     log = _FakeLog()
-    session = SimpleNamespace(log=log)
+    session = SimpleNamespace(services=SimpleNamespace(log=log))
 
     with pytest.raises(ValueError, match="timeout_ms must not exceed"):
         log_tools.uart_read_bytes(session, timeout_ms=60_001)
@@ -246,7 +246,7 @@ def test_uart_read_and_write_limits_are_bounded() -> None:
 def test_uart_binary_tools_have_logs_safety_policies() -> None:
     session = SessionState()
     log = _FakeLog(b"\x81")
-    session.log = log
+    session.services.log = log
     app = create_server(session, toolsets=["logs"])
 
     assert {"uart_read_bytes", "uart_exchange"} <= set(app._tool_manager._tools)

@@ -12,7 +12,7 @@ from ..tool_safety import require_tool_confirmation
 
 
 def build_project(session: SessionState, timeout_seconds: int = 120) -> dict:
-    return session.build.build(
+    return session.services.build.build(
         build=session.config.build,
         elf=session.config.elf,
         timeout_seconds=timeout_seconds,
@@ -37,11 +37,11 @@ def flash_firmware(
 
     disconnect_note = None
     try:
-        disconnect_note = session.probe.disconnect()
+        disconnect_note = session.services.probe.disconnect()
     except Exception:
         disconnect_note = None
 
-    result = session.build.flash(
+    result = session.services.build.flash(
         build=session.config.build,
         elf=session.config.elf,
         timeout_seconds=timeout_seconds,

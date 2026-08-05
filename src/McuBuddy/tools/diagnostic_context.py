@@ -25,23 +25,23 @@ def collect_diagnostic_context(
     log_tail_lines: int = 50,
     resolve_symbols: bool = True,
 ) -> DiagnosticContext:
-    core = session.probe.read_core_registers()
-    fault_registers = session.probe.read_fault_registers() if include_fault_registers else {}
+    core = session.services.probe.read_core_registers()
+    fault_registers = session.services.probe.read_fault_registers() if include_fault_registers else {}
 
     pc_symbol = None
     lr_symbol = None
     source = None
-    if resolve_symbols and session.elf.is_loaded and "pc" in core:
-        pc_result = session.elf.resolve_address(core["pc"])
+    if resolve_symbols and session.services.elf.is_loaded and "pc" in core:
+        pc_result = session.services.elf.resolve_address(core["pc"])
         pc_symbol = pc_result["symbol"]
         source = pc_result["source"]
         if "lr" in core:
-            lr_symbol = session.elf.resolve_address(core["lr"])["symbol"]
+            lr_symbol = session.services.elf.resolve_address(core["lr"])["symbol"]
 
     log_lines: list[str] = []
     last_meaningful = None
     if include_logs:
-        log_lines = session.log.read_recent(log_tail_lines)
+        log_lines = session.services.log.read_recent(log_tail_lines)
         last_meaningful = next((line for line in reversed(log_lines) if line.strip()), None)
 
     config = getattr(session, "config", None)
@@ -57,7 +57,7 @@ def collect_diagnostic_context(
         log_lines=log_lines,
         last_meaningful_log=last_meaningful,
         raw_refs={
-            "elf_loaded": session.elf.is_loaded,
+            "elf_loaded": session.services.elf.is_loaded,
             "probe_backend": getattr(probe_config, "backend", None),
             "log_backend": getattr(log_config, "backend", None),
         },

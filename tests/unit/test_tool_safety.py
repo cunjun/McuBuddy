@@ -1,6 +1,7 @@
 import asyncio
 import ast
 from pathlib import Path
+from types import SimpleNamespace
 
 from McuBuddy.backends.probe.base import ProbeCapability
 from McuBuddy.server import create_server
@@ -80,10 +81,12 @@ class _FakeSvd:
 
 class _FakeSession:
     def __init__(self) -> None:
-        self.probe = _RecordingProbe()
-        self.elf = _FakeElf()
-        self.svd = _FakeSvd()
-        self.conditional_breakpoints = {}
+        self.services = SimpleNamespace(
+            probe=_RecordingProbe(),
+            elf=_FakeElf(),
+            svd=_FakeSvd(),
+        )
+        self.artifacts = SimpleNamespace(conditional_breakpoints={})
 
 
 def test_tool_safety_marks_read_only_and_destructive_tools() -> None:
@@ -200,7 +203,7 @@ def test_state_changing_probe_write_memory_requires_confirmation() -> None:
 
     assert result["status"] == "error"
     assert result["safety"]["level"] == "state-changing"
-    assert session.probe.calls == []
+    assert session.services.probe.calls == []
 
 
 def test_state_changing_symbol_write_requires_confirmation() -> None:
@@ -210,7 +213,7 @@ def test_state_changing_symbol_write_requires_confirmation() -> None:
 
     assert result["status"] == "error"
     assert result["safety"]["level"] == "state-changing"
-    assert session.probe.calls == []
+    assert session.services.probe.calls == []
 
 
 def test_state_changing_svd_write_requires_confirmation() -> None:
@@ -220,7 +223,7 @@ def test_state_changing_svd_write_requires_confirmation() -> None:
 
     assert result["status"] == "error"
     assert result["safety"]["level"] == "state-changing"
-    assert session.svd.calls == []
+    assert session.services.svd.calls == []
 
 
 def test_state_changing_breakpoint_and_watchpoint_require_confirmation() -> None:
@@ -231,7 +234,7 @@ def test_state_changing_breakpoint_and_watchpoint_require_confirmation() -> None
 
     assert breakpoint_result["status"] == "error"
     assert watchpoint_result["status"] == "error"
-    assert session.probe.calls == []
+    assert session.services.probe.calls == []
 
 
 def test_mpu_region_read_requires_confirmation_because_it_writes_selector() -> None:
@@ -241,14 +244,14 @@ def test_mpu_region_read_requires_confirmation_because_it_writes_selector() -> N
 
     assert result["status"] == "error"
     assert result["safety"]["level"] == "state-changing"
-    assert session.probe.calls == []
+    assert session.services.probe.calls == []
 
 
 def test_state_changing_reads_require_confirmation_through_mcp() -> None:
     session = SessionState()
     probe = _StateChangingReadProbe()
-    session.probe = probe
-    app = create_server(session, tool_profile="full")
+    session.services.probe = probe
+    app = create_server(session, toolsets=["probe", "logs"])
 
     cycle_result = asyncio.run(app._tool_manager.get_tool("read_cycle_counter").run({}))
     swo_result = asyncio.run(

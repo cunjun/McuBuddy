@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..mcp_execution import SessionToolRegistrar
+from ..mcp_execution import require_session_tool_registrar
 from ..session import SessionState
 from ..tools.svd import svd_get_registers as _svd_get_registers
 from ..tools.svd import svd_list_peripherals as _svd_list_peripherals
@@ -9,8 +11,9 @@ from ..tools.svd import svd_write_field as _svd_write_field
 from ..tools.svd import svd_write_register as _svd_write_register
 
 
-def register_svd_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_svd_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def svd_load(svd_path: str) -> dict:
         """Load a CMSIS-SVD file to enable peripheral register interpretation.
 
@@ -20,12 +23,12 @@ def register_svd_tools(mcp, session: SessionState) -> None:
         """
         return _svd_load(session, svd_path=svd_path)
 
-    @mcp.tool()
+    @registrar.tool()
     async def svd_list_peripherals() -> dict:
         """List all peripherals in the loaded SVD (UART, SPI, I2C, GPIO, TIM, etc.)."""
         return _svd_list_peripherals(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def svd_get_registers(peripheral: str) -> dict:
         """Return the register layout for a peripheral without reading hardware.
 
@@ -34,7 +37,7 @@ def register_svd_tools(mcp, session: SessionState) -> None:
         """
         return _svd_get_registers(session, peripheral=peripheral)
 
-    @mcp.tool()
+    @registrar.tool()
     async def svd_read_peripheral(peripheral: str) -> dict:
         """Read all register values for a peripheral and interpret each field.
 
@@ -45,7 +48,7 @@ def register_svd_tools(mcp, session: SessionState) -> None:
         """
         return _svd_read_peripheral(session, peripheral=peripheral)
 
-    @mcp.tool()
+    @registrar.tool()
     async def svd_write_register(
         peripheral: str,
         register: str,
@@ -67,7 +70,7 @@ def register_svd_tools(mcp, session: SessionState) -> None:
             confirm=confirm,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def svd_write_field(
         peripheral: str,
         register: str,

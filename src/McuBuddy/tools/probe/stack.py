@@ -9,16 +9,16 @@ _DWARF_REG_TO_CORE[15] = "pc"
 
 
 def dwarf_backtrace(session: SessionState, max_frames: int = 16) -> dict:
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded. Load an ELF file first."}
 
-    core = session.probe.read_core_registers()
+    core = session.services.probe.read_core_registers()
 
     def read32(addr: int) -> int:
-        return int.from_bytes(session.probe.read_memory(addr, 4), "little")
+        return int.from_bytes(session.services.probe.read_memory(addr, 4), "little")
 
     def make_frame(idx: int, pc: int) -> dict:
-        resolved = session.elf.resolve_address(pc)
+        resolved = session.services.elf.resolve_address(pc)
         return {
             "frame": idx,
             "address": hex(pc),
@@ -32,7 +32,7 @@ def dwarf_backtrace(session: SessionState, max_frames: int = 16) -> dict:
 
     for i in range(max_frames):
         frames.append(make_frame(i, cur_pc))
-        cfi = session.elf.get_cfi_at(cur_pc)
+        cfi = session.services.elf.get_cfi_at(cur_pc)
 
         if cfi is None:
             # No CFI — leaf function or missing .debug_frame; use LR as return address
@@ -76,15 +76,15 @@ def backtrace(
     max_frames: int = 20,
     stack_scan_words: int = 64,
 ) -> dict:
-    core = session.probe.read_core_registers()
+    core = session.services.probe.read_core_registers()
     pc = core["pc"] & ~1
     lr = core["lr"]
     sp = core["sp"]
 
     def make_frame(addr: int, idx: int) -> dict:
         frame: dict = {"frame": idx, "address": hex(addr)}
-        if session.elf.is_loaded:
-            resolved = session.elf.resolve_address(addr)
+        if session.services.elf.is_loaded:
+            resolved = session.services.elf.resolve_address(addr)
             frame["symbol"] = resolved["symbol"]
             frame["source"] = resolved["source"]
         else:
@@ -107,7 +107,7 @@ def backtrace(
         lr_addr = lr & ~1
         if lr_addr not in seen:
             f = make_frame(lr_addr, 1)
-            if not session.elf.is_loaded or f["symbol"] is not None:
+            if not session.services.elf.is_loaded or f["symbol"] is not None:
                 frames.append(f)
                 seen.add(lr_addr)
 
@@ -116,7 +116,7 @@ def backtrace(
         if len(frames) >= max_frames:
             break
         try:
-            word = int.from_bytes(session.probe.read_memory(sp + i, 4), "little")
+            word = int.from_bytes(session.services.probe.read_memory(sp + i, 4), "little")
         except Exception:
             break
         if is_exc_return(word) or word < 0x100:
@@ -124,8 +124,8 @@ def backtrace(
         addr = word & ~1
         if addr in seen:
             continue
-        if session.elf.is_loaded:
-            resolved = session.elf.resolve_address(addr)
+        if session.services.elf.is_loaded:
+            resolved = session.services.elf.resolve_address(addr)
             if resolved["symbol"] is None:
                 continue
         seen.add(addr)

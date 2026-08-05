@@ -389,7 +389,7 @@ def require_tool_confirmation(tool_name: str, confirmed: bool) -> dict[str, Any]
 
 def list_tool_safety(
     *,
-    active_profile: str = "full",
+    active_profile: str = "core",
     selected_toolsets: frozenset[str] | set[str] | None = None,
     enabled_tool_names: frozenset[str] | set[str] | None = None,
     include_hidden: bool = False,

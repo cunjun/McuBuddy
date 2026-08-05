@@ -8,7 +8,8 @@ scenario guidance in the [Project Guide](../PROJECT_GUIDE.md), and capability st
 
 McuBuddy exposes the `core` profile with the 19-tool `default` toolset. Add comma-separated domains
 with `MCUBUDDY_TOOLSETS=probe,diagnose`. Supported toolsets are `default`, `probe`, `diagnose`,
-`build_flash`, `rtos`, `logs`, and `experimental`. Set `MCUBUDDY_TOOL_PROFILE=full` only for the
+`build_flash`, `rtos`, `logs`, and `experimental`. Select the required domains with
+`MCUBUDDY_TOOLSETS`; there is no aggregate compatibility profile for the
 complete compatibility catalog. The selection is fixed for the MCP server process lifetime.
 
 Core tools:

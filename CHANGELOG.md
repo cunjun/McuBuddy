@@ -4,7 +4,7 @@
 
 ### Changed
 - Switched the default MCP tool profile to `core`, exposing a smaller evidence-first tool set.
-- Added explicit `MCUBUDDY_TOOL_PROFILE=full` opt-in for the complete legacy tool surface plus
+- Replaced the aggregate compatibility profile with explicit `MCUBUDDY_TOOLSETS` domain selection for
   the new evidence collectors.
 - Made `list_tool_safety` report the active profile and hide non-exposed tool metadata by default.
 
@@ -15,7 +15,7 @@
 
 ### Migration
 - This is a breaking default-behavior change for alpha users. Existing clients that relied on the
-  full 0.5.x tool catalog should set `MCUBUDDY_TOOL_PROFILE=full` in their MCP server environment.
+  legacy 0.5.x workflows should select the required domains with `MCUBUDDY_TOOLSETS` in their MCP server environment.
 
 ## 0.5.1 - 2026-07-20
 

@@ -54,7 +54,7 @@ class _FallbackProbe:
 
 
 def test_read_rtt_log_prefers_backend_specific_result() -> None:
-    session = SimpleNamespace(probe=_BackendProbe())
+    session = SimpleNamespace(services=SimpleNamespace(probe=_BackendProbe()))
 
     result = read_rtt_log(session, channel=0, max_bytes=32)
 
@@ -64,7 +64,7 @@ def test_read_rtt_log_prefers_backend_specific_result() -> None:
 
 
 def test_read_rtt_log_falls_back_to_memory_scan() -> None:
-    session = SimpleNamespace(probe=_FallbackProbe())
+    session = SimpleNamespace(services=SimpleNamespace(probe=_FallbackProbe()))
 
     result = read_rtt_log(
         session,
@@ -91,7 +91,7 @@ def test_read_rtt_log_blocks_oversized_fallback_scan_before_memory_read() -> Non
     probe.read_memory = tracked_read_memory
     config = RuntimeConfig()
     config.security.max_rtt_scan_size = 0x100
-    session = SimpleNamespace(probe=probe, config=config)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe), config=config)
 
     result = read_rtt_log(session, search_size=0x120)
 

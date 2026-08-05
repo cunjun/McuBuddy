@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..mcp_execution import SessionToolRegistrar
+from ..mcp_execution import require_session_tool_registrar
 from ..session import SessionState
 from ..tools.diagnose import diagnose_hardfault as _diagnose_hardfault
 from ..tools.diagnose import diagnose_startup_failure as _diagnose_startup_failure
@@ -10,8 +12,9 @@ from ..tools.phase3 import diagnose_peripheral_stuck as _diagnose_peripheral_stu
 from ..tools.phase3 import diagnose_stack_overflow as _diagnose_stack_overflow
 
 
-def register_diagnostic_tools(mcp, session: SessionState) -> None:
-    @mcp.tool()
+def register_diagnostic_tools(registrar: SessionToolRegistrar, session: SessionState) -> None:
+    require_session_tool_registrar(registrar)
+    @registrar.tool()
     async def diagnose_peripheral_stuck(peripheral: str, symptom: str | None = None) -> dict:
         """Diagnose why a peripheral is not working.
 
@@ -22,7 +25,7 @@ def register_diagnostic_tools(mcp, session: SessionState) -> None:
         """
         return _diagnose_peripheral_stuck(session, peripheral=peripheral, symptom=symptom)
 
-    @mcp.tool()
+    @registrar.tool()
     async def diagnose_stack_overflow() -> dict:
         """Diagnose potential stack overflow on a Cortex-M target.
 
@@ -34,15 +37,15 @@ def register_diagnostic_tools(mcp, session: SessionState) -> None:
         """
         return _diagnose_stack_overflow(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def diagnose_interrupt_issue() -> dict:
         return _diagnose_interrupt_issue(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def diagnose_clock_issue() -> dict:
         return _diagnose_clock_issue(session)
 
-    @mcp.tool()
+    @registrar.tool()
     async def diagnose_hardfault(
         auto_halt: bool = True,
         include_logs: bool = True,
@@ -65,7 +68,7 @@ def register_diagnostic_tools(mcp, session: SessionState) -> None:
             suspected_stage=suspected_stage,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def diagnose_startup_failure(
         auto_halt: bool = True,
         include_logs: bool = True,
@@ -82,7 +85,7 @@ def register_diagnostic_tools(mcp, session: SessionState) -> None:
             suspected_stage=suspected_stage,
         )
 
-    @mcp.tool()
+    @registrar.tool()
     async def diagnose(
         symptom: str,
         peripheral: str | None = None,

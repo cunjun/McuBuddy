@@ -15,7 +15,7 @@ def diagnose_startup_failure(
     suspected_stage: str | None = None,
 ) -> dict:
     if auto_halt:
-        session.probe.halt()
+        session.services.probe.halt()
 
     context = collect_diagnostic_context(
         session,
@@ -28,7 +28,7 @@ def diagnose_startup_failure(
     pc_samples = [core["pc"]]
     for _ in range(2):
         try:
-            pc_samples.append(session.probe.read_core_registers()["pc"])
+            pc_samples.append(session.services.probe.read_core_registers()["pc"])
         except Exception:
             break
     fault_registers = context.fault_registers

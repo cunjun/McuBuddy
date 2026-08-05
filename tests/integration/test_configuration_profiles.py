@@ -91,7 +91,7 @@ def test_configure_probe_validates_before_replacing_or_disconnecting_backend(mon
 
     session = SessionState()
     original_probe = _Probe()
-    session.probe = original_probe
+    session.services.probe = original_probe
     original_config = session.config.model_copy(deep=True)
     replacement_created = False
 
@@ -112,7 +112,7 @@ def test_configure_probe_validates_before_replacing_or_disconnecting_backend(mon
     )
 
     assert result["status"] == "error"
-    assert session.probe is original_probe
+    assert session.services.probe is original_probe
     assert session.config == original_config
     assert original_probe.disconnect_calls == 0
     assert replacement_created is False
@@ -211,9 +211,9 @@ def test_connect_with_config_uses_same_probe_preflight_path() -> None:
             return {"status": "ok", "summary": f"elf {path}"}
 
     session = SessionState()
-    session.probe = _Probe()
-    session.log = _Log()
-    session.elf = _Elf()
+    session.services.probe = _Probe()
+    session.services.log = _Log()
+    session.services.elf = _Elf()
     session.config.probe.backend = "jlink"
     session.config.probe.target = "STM32F103C8T6"
     session.config.probe.unique_id = "240710115"

@@ -116,24 +116,40 @@ def create_probe_backend(
 
 
 @dataclass(slots=True)
-class SessionState:
+class SessionServices:
     probe: ProbeBackend = field(default_factory=PyOcdProbeBackend)
     log: LogBackend = field(default_factory=UartLogBackend)
     elf: ElfBackend = field(default_factory=ElfManager)
     svd: SvdBackend = field(default_factory=SvdManager)
     build: BuildRuntimeBackend = field(default_factory=KeilBuildRuntime)
     gdb_server: GdbServerRuntime = field(default_factory=GdbServerRuntime)
-    config: RuntimeConfig = field(default_factory=RuntimeConfig)
+
+
+@dataclass(slots=True)
+class DebugArtifacts:
     memory_snapshots: dict[str, dict[str, Any]] = field(default_factory=dict)
     conditional_breakpoints: dict[int, dict[str, Any]] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class SessionLifecycle:
     pending_uart_cleanup: list[bytes] = field(default_factory=list)
-    debug_session_finish_result: dict[str, Any] | None = None
+    completed_cleanup_steps: set[str] = field(default_factory=set)
+    finish_result: dict[str, Any] | None = None
+
+
+@dataclass(slots=True)
+class SessionState:
+    config: RuntimeConfig = field(default_factory=RuntimeConfig)
+    services: SessionServices = field(default_factory=SessionServices)
+    artifacts: DebugArtifacts = field(default_factory=DebugArtifacts)
+    lifecycle: SessionLifecycle = field(default_factory=SessionLifecycle)
     execution_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
 
 
 def create_default_session() -> SessionState:
     session = SessionState()
-    session.probe = create_probe_backend(
+    session.services.probe = create_probe_backend(
         session.config.probe.backend,
         jlink_dll_path=session.config.probe.jlink_dll_path,
         probe_rs_sidecar_path=session.config.probe.probe_rs_sidecar_path,

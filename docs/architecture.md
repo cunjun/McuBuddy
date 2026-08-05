@@ -32,14 +32,14 @@ policies. Every entry carries its safety level, stability, default visibility, a
 the seven startup toolsets: `default`, `probe`, `diagnose`, `build_flash`, `rtos`, `logs`, or
 `experimental`.
 
-Both `core` and `full` are explicit allowlists derived from that catalog. `full` does not mean
+The `core` profile and its selected domain toolsets form an explicit allowlist derived from that catalog. Selection does not mean
 "register every decorated Python function": a new `@mcp.tool()` callback remains hidden until it
 has an explicit policy and therefore enters the governed catalog. Keep this fail-closed invariant
 when adding registration paths.
 
 The default `core` preset registers 19 orchestration and session tools. `MCUBUDDY_TOOLSETS` adds
 comma-separated domain toolsets at startup; the registered surface is immutable for that process.
-Use `full` only as a compatibility preset for all 118 governed tools.
+There is no aggregate compatibility profile. Select only the domain toolsets required by the workflow.
 Do not create a new top-level MCP tool for an internal helper or backend-specific implementation.
 A public tool should represent a distinct user intent or safety boundary with a stable schema.
 

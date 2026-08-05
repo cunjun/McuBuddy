@@ -38,7 +38,7 @@ def _summarize(evidence: list[dict[str, Any]], topic: str) -> tuple[str, str]:
 
 
 def _recent_logs(session: SessionState, line_count: int) -> dict[str, Any]:
-    lines = session.log.read_recent(line_count)
+    lines = session.services.log.read_recent(line_count)
     return {
         "status": "ok",
         "line_count": len(lines),
@@ -61,7 +61,7 @@ def collect_crash_evidence(
 ) -> dict[str, Any]:
     evidence: list[dict[str, Any]] = []
     if auto_halt:
-        evidence.append(_observe("halt", session.probe.halt))
+        evidence.append(_observe("halt", session.services.probe.halt))
 
     evidence.append(
         _observe(
@@ -78,9 +78,9 @@ def collect_crash_evidence(
 
     if include_stack_snapshot:
         def stack_snapshot() -> dict[str, Any]:
-            core = session.probe.read_core_registers()
+            core = session.services.probe.read_core_registers()
             sp = core["sp"]
-            data = session.probe.read_memory(sp, stack_snapshot_bytes)
+            data = session.services.probe.read_memory(sp, stack_snapshot_bytes)
             return {
                 "status": "ok",
                 "start_address": hex(sp),
@@ -113,7 +113,7 @@ def collect_startup_evidence(
 ) -> dict[str, Any]:
     evidence: list[dict[str, Any]] = []
     if reset_and_halt:
-        evidence.append(_observe("reset_halt", lambda: session.probe.reset(halt=True)))
+        evidence.append(_observe("reset_halt", lambda: session.services.probe.reset(halt=True)))
     evidence.append(
         _observe(
             "stopped_context",
@@ -129,7 +129,7 @@ def collect_startup_evidence(
     evidence.append(
         _observe(
             "vector_words",
-            lambda: session.probe.read_memory(0x00000000, 16).hex(" "),
+            lambda: session.services.probe.read_memory(0x00000000, 16).hex(" "),
         )
     )
     if include_logs:

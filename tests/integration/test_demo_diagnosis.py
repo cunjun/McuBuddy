@@ -6,9 +6,9 @@ from McuBuddy.tools.diagnose import diagnose_hardfault, diagnose_startup_failure
 
 def test_mock_startup_failure_contains_sensor_stage() -> None:
     session = MockSessionState()
-    session.log.connect("COM-MOCK")
-    session.probe.connect("stm32l4")
-    session.elf.load("firmware.elf")
+    session.services.log.connect("COM-MOCK")
+    session.services.probe.connect("stm32l4")
+    session.services.elf.load("firmware.elf")
 
     result = diagnose_startup_failure(session, suspected_stage="sensor init")
 
@@ -22,9 +22,9 @@ def test_mock_startup_failure_contains_sensor_stage() -> None:
 
 def test_mock_hardfault_resolves_handler_symbol() -> None:
     session = MockSessionState()
-    session.log.connect("COM-MOCK")
-    session.probe.connect("stm32l4")
-    session.elf.load("firmware.elf")
+    session.services.log.connect("COM-MOCK")
+    session.services.probe.connect("stm32l4")
+    session.services.elf.load("firmware.elf")
 
     result = diagnose_hardfault(session, suspected_stage="sensor init")
 
@@ -94,9 +94,11 @@ class _HealthyElfManager:
 
 class _HealthySession:
     def __init__(self) -> None:
-        self.log = _HealthyLogBackend()
-        self.probe = _HealthyProbeBackend()
-        self.elf = _HealthyElfManager()
+        self.services = SimpleNamespace(
+            log=_HealthyLogBackend(),
+            probe=_HealthyProbeBackend(),
+            elf=_HealthyElfManager(),
+        )
         self.config = SimpleNamespace(
             probe=SimpleNamespace(backend="jlink"),
             log=SimpleNamespace(backend="uart"),

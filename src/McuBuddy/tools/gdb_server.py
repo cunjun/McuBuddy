@@ -46,7 +46,7 @@ def start_gdb_server(
         cwd = str(Path(resolved_elf_path).resolve().parent)
 
     try:
-        return session.gdb_server.start(
+        return session.services.gdb_server.start(
             target=resolved_target,
             unique_id=resolved_unique_id,
             port=port,
@@ -63,14 +63,14 @@ def start_gdb_server(
 
 def stop_gdb_server(session: SessionState, timeout_seconds: float = 5.0) -> dict:
     try:
-        return session.gdb_server.stop(timeout_seconds=timeout_seconds)
+        return session.services.gdb_server.stop(timeout_seconds=timeout_seconds)
     except Exception as e:
         return {"status": "error", "summary": str(e)}
 
 
 def get_gdb_server_status(session: SessionState) -> dict:
     try:
-        status = session.gdb_server.status()
+        status = session.services.gdb_server.status()
         return {
             "status": "ok",
             "summary": (
@@ -121,7 +121,7 @@ def start_jlink_gdb_server(
 
     try:
         resolved_exe_path = _resolve_jlink_gdb_server_path(exe_path)
-        result = session.gdb_server.start_jlink(
+        result = session.services.gdb_server.start_jlink(
             target=resolved_target,
             serial_no=resolved_serial,
             port=port,
@@ -136,7 +136,7 @@ def start_jlink_gdb_server(
             and resolved_serial
             and any("Could not select J-Link with specified S/N" in line for line in log_tail)
         ):
-            retry = session.gdb_server.start_jlink(
+            retry = session.services.gdb_server.start_jlink(
                 target=resolved_target,
                 serial_no=None,
                 port=port,
@@ -159,7 +159,7 @@ def start_jlink_gdb_server(
 
 def get_jlink_gdb_server_status(session: SessionState) -> dict:
     try:
-        status = session.gdb_server.status()
+        status = session.services.gdb_server.status()
         if status.get("backend") != "jlink":
             return {
                 "status": "ok",
@@ -181,13 +181,13 @@ def get_jlink_gdb_server_status(session: SessionState) -> dict:
 
 def stop_jlink_gdb_server(session: SessionState, timeout_seconds: float = 5.0) -> dict:
     try:
-        status = session.gdb_server.status()
+        status = session.services.gdb_server.status()
         if status.get("backend") != "jlink":
             return {
                 "status": "ok",
                 "summary": "J-Link GDB server is not running.",
                 **status,
             }
-        return session.gdb_server.stop(timeout_seconds=timeout_seconds)
+        return session.services.gdb_server.stop(timeout_seconds=timeout_seconds)
     except Exception as e:
         return {"status": "error", "summary": str(e)}

@@ -10,29 +10,29 @@ def read_stopped_context(
     log_tail_lines: int = 20,
     resolve_symbols: bool = True,
 ) -> dict:
-    core = session.probe.read_core_registers()
-    fault = session.probe.read_fault_registers() if include_fault_registers else {}
+    core = session.services.probe.read_core_registers()
+    fault = session.services.probe.read_fault_registers() if include_fault_registers else {}
 
     pc_symbol = None
     lr_symbol = None
     source = None
-    if resolve_symbols and session.elf.is_loaded and "pc" in core:
-        pc_result = session.elf.resolve_address(core["pc"])
+    if resolve_symbols and session.services.elf.is_loaded and "pc" in core:
+        pc_result = session.services.elf.resolve_address(core["pc"])
         pc_symbol = pc_result["symbol"]
         source = pc_result["source"]
         if "lr" in core:
-            lr_symbol = session.elf.resolve_address(core["lr"])["symbol"]
+            lr_symbol = session.services.elf.resolve_address(core["lr"])["symbol"]
 
     log_lines: list[str] = []
     last_meaningful = None
     if include_logs:
-        log_lines = session.log.read_recent(log_tail_lines)
+        log_lines = session.services.log.read_recent(log_tail_lines)
         last_meaningful = next((line for line in reversed(log_lines) if line.strip()), None)
 
     return {
         "status": "ok",
         "summary": "Read stopped target context.",
-        "state": session.probe.get_state(),
+        "state": session.services.probe.get_state(),
         "registers": {
             **{
                 name: hex(core[name])
@@ -55,10 +55,10 @@ def read_stopped_context(
 
 
 def step_instruction(session: SessionState) -> dict:
-    result = session.probe.step()
+    result = session.services.probe.step()
     pc_hex = result.get("pc")
-    if pc_hex and session.elf.is_loaded:
-        resolved = session.elf.resolve_address(int(pc_hex, 16))
+    if pc_hex and session.services.elf.is_loaded:
+        resolved = session.services.elf.resolve_address(int(pc_hex, 16))
         result["symbol"] = resolved["symbol"]
         result["source"] = resolved["source"]
     return result

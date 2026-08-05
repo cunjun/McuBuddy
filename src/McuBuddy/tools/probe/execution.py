@@ -36,10 +36,10 @@ def continue_until(
     }
     has_condition = condition_symbol is not None or condition_register is not None
     try:
-        with temporary_breakpoint(session.probe, target_address) as created:
+        with temporary_breakpoint(session.services.probe, target_address) as created:
             disposition = "cleared" if created else "preserved"
             for hit_count in range(1, max_hits + 1):
-                result = session.probe.continue_target(
+                result = session.services.probe.continue_target(
                     timeout_seconds=timeout_seconds,
                     poll_interval_seconds=0.05,
                 )
@@ -52,7 +52,7 @@ def continue_until(
                     result["breakpoint_address"] = hex(target_address)
                     return result
 
-                core = session.probe.read_core_registers()
+                core = session.services.probe.read_core_registers()
                 pc = int(core["pc"]) & ~1
                 if pc not in {target_address, target_address + 2, target_address + 4}:
                     continue
@@ -90,7 +90,7 @@ def continue_until(
 
 
 def read_registers(session: SessionState) -> dict:
-    values = session.probe.read_core_registers()
+    values = session.services.probe.read_core_registers()
     return {
         "status": "ok",
         "summary": "Read core registers.",
@@ -99,29 +99,29 @@ def read_registers(session: SessionState) -> dict:
 
 
 def source_step(session: SessionState, max_instructions: int = 100) -> dict:
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return step_instruction(session)
 
-    core = session.probe.read_core_registers()
+    core = session.services.probe.read_core_registers()
     pc = core["pc"]
-    initial = session.elf.addr_to_source(pc)
+    initial = session.services.elf.addr_to_source(pc)
     if initial["file"] is None or initial["line"] is None:
         return step_instruction(session)
 
     cur_file = initial["file"]
     cur_line = initial["line"]
     for instruction_count in range(1, max_instructions + 1):
-        result = session.probe.step()
+        result = session.services.probe.step()
         new_pc_hex = result.get("pc")
         if not new_pc_hex:
             break
 
         new_pc = int(new_pc_hex, 16)
-        new_src = session.elf.addr_to_source(new_pc)
+        new_src = session.services.elf.addr_to_source(new_pc)
         if new_src["file"] is not None and (
             new_src["file"] != cur_file or new_src["line"] != cur_line
         ):
-            sym = session.elf.resolve_address(new_pc)
+            sym = session.services.elf.resolve_address(new_pc)
             source_str = f"{new_src['file']}:{new_src['line']}"
             return {
                 "status": "ok",
@@ -134,10 +134,10 @@ def source_step(session: SessionState, max_instructions: int = 100) -> dict:
                 "symbol": sym["symbol"],
             }
 
-    core = session.probe.read_core_registers()
+    core = session.services.probe.read_core_registers()
     final_pc = core["pc"]
-    final_src = session.elf.addr_to_source(final_pc)
-    final_resolved = session.elf.resolve_address(final_pc)
+    final_src = session.services.elf.addr_to_source(final_pc)
+    final_resolved = session.services.elf.resolve_address(final_pc)
     return {
         "status": "ok",
         "summary": f"Executed up to {max_instructions} instruction(s) without crossing a source line boundary.",
@@ -157,7 +157,7 @@ def disassemble(session: SessionState, address: int, count: int = 10) -> dict:
         return {"status": "error", "summary": "capstone is not installed."}
     size = count * 4
     try:
-        data = session.probe.read_memory(address & ~1, size)
+        data = session.services.probe.read_memory(address & ~1, size)
     except Exception as e:
         return {"status": "error", "summary": str(e)}
     md = Cs(CS_ARCH_ARM, CS_MODE_THUMB + CS_MODE_MCLASS)
@@ -170,8 +170,8 @@ def disassemble(session: SessionState, address: int, count: int = 10) -> dict:
             "op_str": insn.op_str,
             "text": f"{insn.mnemonic} {insn.op_str}".strip(),
         }
-        if session.elf.is_loaded:
-            src = session.elf.addr_to_source(insn.address)
+        if session.services.elf.is_loaded:
+            src = session.services.elf.addr_to_source(insn.address)
             entry["source"] = f"{src['file']}:{src['line']}" if src["file"] else None
         instructions.append(entry)
         if len(instructions) >= count:
@@ -185,14 +185,14 @@ def disassemble(session: SessionState, address: int, count: int = 10) -> dict:
 
 
 def step_out(session: SessionState, timeout_seconds: float = 5.0) -> dict:
-    core = session.probe.read_core_registers()
+    core = session.services.probe.read_core_registers()
     pc = core["pc"] & ~1
 
     # Try DWARF CFI first — more reliable than LR under optimization
     ret_addr: int | None = None
     ret_source = "lr"
-    if session.elf.is_loaded:
-        cfi = session.elf.get_cfi_at(pc)
+    if session.services.elf.is_loaded:
+        cfi = session.services.elf.get_cfi_at(pc)
         if cfi is not None:
             cfa_reg = cfi.get("cfa_reg")
             cfa_offset = cfi.get("cfa_offset", 0)
@@ -201,7 +201,7 @@ def step_out(session: SessionState, timeout_seconds: float = 5.0) -> dict:
                 try:
                     cfa = core.get(cfa_reg, 0) + cfa_offset
                     saved_ra = int.from_bytes(
-                        session.probe.read_memory(cfa + ra_offset, 4), "little"
+                        session.services.probe.read_memory(cfa + ra_offset, 4), "little"
                     )
                     if saved_ra > 0x100:
                         ret_addr = saved_ra & ~1
@@ -212,18 +212,18 @@ def step_out(session: SessionState, timeout_seconds: float = 5.0) -> dict:
     if ret_addr is None:
         ret_addr = core["lr"] & ~1
 
-    with temporary_breakpoint(session.probe, ret_addr):
-        result = session.probe.continue_target(
+    with temporary_breakpoint(session.services.probe, ret_addr):
+        result = session.services.probe.continue_target(
             timeout_seconds=timeout_seconds, poll_interval_seconds=0.05
         )
 
     new_pc = int(result.get("pc", hex(ret_addr)), 16)
     src = (
-        session.elf.addr_to_source(new_pc)
-        if session.elf.is_loaded
+        session.services.elf.addr_to_source(new_pc)
+        if session.services.elf.is_loaded
         else {"file": None, "line": None}
     )
-    sym = session.elf.resolve_address(new_pc)["symbol"] if session.elf.is_loaded else None
+    sym = session.services.elf.resolve_address(new_pc)["symbol"] if session.services.elf.is_loaded else None
     return {
         "status": "ok",
         "summary": f"Stepped out to {hex(new_pc)}.",
@@ -240,10 +240,10 @@ def step_over(session: SessionState, max_source_instructions: int = 100) -> dict
         from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_MCLASS
     except ImportError:
         return source_step(session, max_instructions=max_source_instructions)
-    core = session.probe.read_core_registers()
+    core = session.services.probe.read_core_registers()
     pc = core["pc"] & ~1
     try:
-        data = session.probe.read_memory(pc, 4)
+        data = session.services.probe.read_memory(pc, 4)
     except Exception as e:
         return {"status": "error", "summary": str(e)}
     md = Cs(CS_ARCH_ARM, CS_MODE_THUMB + CS_MODE_MCLASS)
@@ -253,15 +253,15 @@ def step_over(session: SessionState, max_source_instructions: int = 100) -> dict
     insn = insns[0]
     if insn.mnemonic.lower() in ("bl", "blx"):
         return_addr = insn.address + insn.size
-        with temporary_breakpoint(session.probe, return_addr):
-            result = session.probe.continue_target(timeout_seconds=5.0, poll_interval_seconds=0.05)
+        with temporary_breakpoint(session.services.probe, return_addr):
+            result = session.services.probe.continue_target(timeout_seconds=5.0, poll_interval_seconds=0.05)
         new_pc = int(result.get("pc", hex(return_addr)), 16)
         src = (
-            session.elf.addr_to_source(new_pc)
-            if session.elf.is_loaded
+            session.services.elf.addr_to_source(new_pc)
+            if session.services.elf.is_loaded
             else {"file": None, "line": None}
         )
-        sym = session.elf.resolve_address(new_pc)["symbol"] if session.elf.is_loaded else None
+        sym = session.services.elf.resolve_address(new_pc)["symbol"] if session.services.elf.is_loaded else None
         return {
             "status": "ok",
             "summary": f"Stepped over '{insn.mnemonic} {insn.op_str}'.",

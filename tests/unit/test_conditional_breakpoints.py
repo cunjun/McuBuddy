@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from types import SimpleNamespace
 
 from McuBuddy.tools.probe import (
     _evaluate_condition,
@@ -108,9 +109,8 @@ class _FakeProbeSequentialRegister:
 
 class _FakeSession:
     def __init__(self, probe, elf=None):
-        self.probe = probe
-        self.elf = elf or _FakeElfNotLoaded()
-        self.conditional_breakpoints: dict = {}
+        self.services = SimpleNamespace(probe=probe, elf=elf or _FakeElfNotLoaded())
+        self.artifacts = SimpleNamespace(conditional_breakpoints={})
 
 
 # ---------------------------------------------------------------------------
@@ -241,7 +241,7 @@ def test_continue_target_skips_then_halts():
         ],
     )
     session = _FakeSession(probe)
-    session.conditional_breakpoints[bp_addr] = {
+    session.artifacts.conditional_breakpoints[bp_addr] = {
         "condition_symbol": None,
         "condition_register": "r0",
         "condition_op": "eq",
@@ -257,7 +257,7 @@ def test_continue_target_halts_immediately_when_condition_met():
     bp_addr = 0x08001234
     probe = _FakeProbeStaticRegister(bp_addr, {"pc": bp_addr, "r0": 5})
     session = _FakeSession(probe)
-    session.conditional_breakpoints[bp_addr] = {
+    session.artifacts.conditional_breakpoints[bp_addr] = {
         "condition_symbol": None,
         "condition_register": "r0",
         "condition_op": "eq",
@@ -287,8 +287,8 @@ def test_set_breakpoint_registers_condition():
         confirm=True,
     )
     assert result["conditional"] is True
-    assert 0x08001234 in session.conditional_breakpoints
-    cond = session.conditional_breakpoints[0x08001234]
+    assert 0x08001234 in session.artifacts.conditional_breakpoints
+    cond = session.artifacts.conditional_breakpoints[0x08001234]
     assert cond["condition_register"] == "r0"
     assert cond["condition_value"] == 5
 
@@ -298,7 +298,7 @@ def test_set_breakpoint_no_condition_does_not_register():
     session = _FakeSession(probe)
 
     set_breakpoint(session, address=0x08001234, confirm=True)
-    assert 0x08001234 not in session.conditional_breakpoints
+    assert 0x08001234 not in session.artifacts.conditional_breakpoints
 
 
 def test_set_breakpoint_invalid_op_returns_error():
@@ -314,26 +314,26 @@ def test_set_breakpoint_invalid_op_returns_error():
 def test_clear_breakpoint_removes_condition():
     probe = _FakeProbeStaticRegister(0x08001234, {"pc": 0x08001234})
     session = _FakeSession(probe)
-    session.conditional_breakpoints[0x08001234] = {"condition_register": "r0"}
+    session.artifacts.conditional_breakpoints[0x08001234] = {"condition_register": "r0"}
 
     clear_breakpoint(session, address=0x08001234, confirm=True)
-    assert 0x08001234 not in session.conditional_breakpoints
+    assert 0x08001234 not in session.artifacts.conditional_breakpoints
 
 
 def test_clear_all_breakpoints_clears_conditions():
     probe = _FakeProbeStaticRegister(0x08001234, {"pc": 0x08001234})
     session = _FakeSession(probe)
-    session.conditional_breakpoints[0x08001234] = {"condition_register": "r0"}
-    session.conditional_breakpoints[0x08005678] = {"condition_register": "r1"}
+    session.artifacts.conditional_breakpoints[0x08001234] = {"condition_register": "r0"}
+    session.artifacts.conditional_breakpoints[0x08005678] = {"condition_register": "r1"}
 
     clear_all_breakpoints(session, confirm=True)
-    assert session.conditional_breakpoints == {}
+    assert session.artifacts.conditional_breakpoints == {}
 
 
 def test_clear_all_breakpoints_preserves_conditions_when_backend_fails():
     probe = _FakeProbeStaticRegister(0x08001234, {"pc": 0x08001234})
     session = _FakeSession(probe)
-    session.conditional_breakpoints[0x08001234] = {"condition_register": "r0"}
+    session.artifacts.conditional_breakpoints[0x08001234] = {"condition_register": "r0"}
 
     def fail_clear_all():
         raise RuntimeError("probe disconnected")
@@ -343,7 +343,7 @@ def test_clear_all_breakpoints_preserves_conditions_when_backend_fails():
     with pytest.raises(RuntimeError, match="probe disconnected"):
         clear_all_breakpoints(session, confirm=True)
 
-    assert 0x08001234 in session.conditional_breakpoints
+    assert 0x08001234 in session.artifacts.conditional_breakpoints
 
 
 def test_list_conditional_breakpoints_empty():
@@ -358,7 +358,7 @@ def test_list_conditional_breakpoints_with_entries():
     probe = _FakeProbeStaticRegister(0x08001234, {"pc": 0x08001234})
     session = _FakeSession(probe)
     entry = {"condition_register": "r0", "condition_op": "eq", "condition_value": 5}
-    session.conditional_breakpoints[0x08001234] = entry
+    session.artifacts.conditional_breakpoints[0x08001234] = entry
 
     result = list_conditional_breakpoints(session)
     assert len(result["conditional_breakpoints"]) == 1
@@ -374,10 +374,9 @@ class _FakeSessionForContinueUntil:
     """Session with probe only (no elf, no conditional_breakpoints needed by continue_until)."""
 
     def __init__(self, probe):
-        self.probe = probe
-        self.elf = _FakeElfNotLoaded()
-        # continue_until does NOT use session.conditional_breakpoints - it manages its own loop
-        self.conditional_breakpoints: dict = {}
+        self.services = SimpleNamespace(probe=probe, elf=_FakeElfNotLoaded())
+        # continue_until does not use the stored conditional-breakpoint registry.
+        self.artifacts = SimpleNamespace(conditional_breakpoints={})
 
 
 def test_continue_until_no_condition_halts_immediately():

@@ -21,34 +21,34 @@ class _FakeDisconnectable:
 
 def test_probe_disconnect_calls_backend() -> None:
     session = SessionState()
-    session.probe = _FakeDisconnectable("probe disconnected")
+    session.services.probe = _FakeDisconnectable("probe disconnected")
 
     result = disconnect_probe(session)
 
     assert result["status"] == "ok"
-    assert session.probe.called is True
+    assert session.services.probe.called is True
 
 
 def test_log_disconnect_calls_backend() -> None:
     session = SessionState()
-    session.log = _FakeDisconnectable("log disconnected")
+    session.services.log = _FakeDisconnectable("log disconnected")
 
     result = disconnect_log(session)
 
     assert result["status"] == "ok"
-    assert session.log.called is True
+    assert session.services.log.called is True
 
 
 def test_disconnect_all_disconnects_probe_and_log() -> None:
     session = SessionState()
-    session.probe = _FakeDisconnectable("probe disconnected")
-    session.log = _FakeDisconnectable("log disconnected")
+    session.services.probe = _FakeDisconnectable("probe disconnected")
+    session.services.log = _FakeDisconnectable("log disconnected")
 
     result = disconnect_all(session)
 
     assert result["status"] == "ok"
-    assert session.probe.called is True
-    assert session.log.called is True
+    assert session.services.probe.called is True
+    assert session.services.log.called is True
     assert "probe" in result["results"]
     assert "log" in result["results"]
 
@@ -97,8 +97,8 @@ class _SafeLog(_FakeDisconnectable):
 
 def test_finish_debug_session_stops_actuators_then_resets_runs_and_disconnects() -> None:
     session = SessionState()
-    session.probe = _SafeProbe()
-    session.log = _SafeLog()
+    session.services.probe = _SafeProbe()
+    session.services.log = _SafeLog()
 
     uart_send_with_cleanup(
         session,
@@ -110,8 +110,8 @@ def test_finish_debug_session_stops_actuators_then_resets_runs_and_disconnects()
     result = finish_debug_session(session)
 
     assert result["status"] == "ok"
-    assert session.log.writes == [b"\xa1\x01", b"\xa1\x00"]
-    assert session.probe.actions == [
+    assert session.services.log.writes == [b"\xa1\x01", b"\xa1\x00"]
+    assert session.services.probe.actions == [
         "clear_breakpoints",
         "reset:True",
         "resume",
@@ -121,8 +121,8 @@ def test_finish_debug_session_stops_actuators_then_resets_runs_and_disconnects()
 
 def test_finish_debug_session_continues_after_cleanup_and_reset_failures() -> None:
     session = SessionState()
-    session.probe = _SafeProbe(fail_reset=True)
-    session.log = _SafeLog(fail_payload=b"stop")
+    session.services.probe = _SafeProbe(fail_reset=True)
+    session.services.log = _SafeLog(fail_payload=b"stop")
     uart_send_with_cleanup(
         session,
         data="start",
@@ -135,15 +135,43 @@ def test_finish_debug_session_continues_after_cleanup_and_reset_failures() -> No
 
     assert result["status"] == "partial"
     assert set(result["errors"]) == {"actuator_cleanup_1", "probe_reset_halt"}
-    assert "resume" in session.probe.actions
-    assert "disconnect" in session.probe.actions
-    assert session.log.called is True
+    assert "resume" not in session.services.probe.actions
+    assert "disconnect" in session.services.probe.actions
+    assert session.services.log.called is True
+    assert session.lifecycle.pending_uart_cleanup == [b"stop"]
+
+
+def test_finish_debug_session_retries_only_failed_steps() -> None:
+    session = SessionState()
+    session.services.probe = _SafeProbe(fail_reset=True)
+    session.services.log = _SafeLog(fail_payload=b"stop")
+    uart_send_with_cleanup(
+        session,
+        data="start",
+        data_format="text",
+        cleanup_data="stop",
+        cleanup_data_format="text",
+    )
+
+    first = finish_debug_session(session)
+    session.services.probe.fail_reset = False
+    session.services.log.fail_payload = None
+    second = finish_debug_session(session)
+
+    assert first["status"] == "partial"
+    assert second["status"] == "ok"
+    assert second["already_finished"] is False
+    assert session.services.log.writes == [b"start", b"stop", b"stop"]
+    assert session.services.probe.actions.count("clear_breakpoints") == 1
+    assert session.services.probe.actions.count("reset:True") == 2
+    assert session.services.probe.actions.count("resume") == 1
+    assert session.services.probe.actions.count("disconnect") == 1
 
 
 def test_finish_debug_session_is_idempotent() -> None:
     session = SessionState()
-    session.probe = _SafeProbe()
-    session.log = _SafeLog()
+    session.services.probe = _SafeProbe()
+    session.services.log = _SafeLog()
 
     first = finish_debug_session(session)
     second = finish_debug_session(session)
@@ -151,12 +179,12 @@ def test_finish_debug_session_is_idempotent() -> None:
     assert first["status"] == "ok"
     assert second["status"] == "ok"
     assert second["already_finished"] is True
-    assert session.probe.actions.count("reset:True") == 1
+    assert session.services.probe.actions.count("reset:True") == 1
 
 
 def test_failed_actuator_start_is_not_registered_for_cleanup() -> None:
     session = SessionState()
-    session.log = _SafeLog(fail_payload=b"start")
+    session.services.log = _SafeLog(fail_payload=b"start")
 
     try:
         uart_send_with_cleanup(
@@ -169,7 +197,7 @@ def test_failed_actuator_start_is_not_registered_for_cleanup() -> None:
     except RuntimeError:
         pass
 
-    assert session.pending_uart_cleanup == []
+    assert session.lifecycle.pending_uart_cleanup == []
 
 
 def test_logs_toolset_exposes_safe_uart_and_finish_tools() -> None:
@@ -181,18 +209,18 @@ def test_logs_toolset_exposes_safe_uart_and_finish_tools() -> None:
 
 def test_server_lifespan_finishes_debug_session_on_shutdown() -> None:
     session = SessionState()
-    session.probe = _SafeProbe()
-    session.log = _SafeLog()
+    session.services.probe = _SafeProbe()
+    session.services.log = _SafeLog()
     app = create_server(session, toolsets=["probe"])
 
     async def run_lifespan() -> None:
         async with app._mcp_server.lifespan(app._mcp_server):
-            assert session.debug_session_finish_result is None
+            assert session.lifecycle.finish_result is None
 
     asyncio.run(run_lifespan())
 
-    assert session.debug_session_finish_result is not None
-    assert session.probe.actions == [
+    assert session.lifecycle.finish_result is not None
+    assert session.services.probe.actions == [
         "clear_breakpoints",
         "reset:True",
         "resume",
@@ -202,8 +230,8 @@ def test_server_lifespan_finishes_debug_session_on_shutdown() -> None:
 
 def test_new_execution_change_reopens_a_finished_debug_session() -> None:
     session = SessionState()
-    session.probe = _SafeProbe()
-    session.log = _SafeLog()
+    session.services.probe = _SafeProbe()
+    session.services.log = _SafeLog()
     app = create_server(session, toolsets=["probe"])
 
     async def scenario() -> dict:
@@ -214,4 +242,4 @@ def test_new_execution_change_reopens_a_finished_debug_session() -> None:
     result = asyncio.run(scenario())
 
     assert result["already_finished"] is False
-    assert session.probe.actions.count("reset:True") == 2
+    assert session.services.probe.actions.count("reset:True") == 2

@@ -20,7 +20,7 @@ def write_memory(
     raw = bytes(data)
     if blocked := ensure_memory_write_allowed(runtime_config_for(session), len(raw)):
         return blocked
-    session.probe.write_memory(address, raw)
+    session.services.probe.write_memory(address, raw)
     return {
         "status": "ok",
         "summary": f"Wrote {len(raw)} byte(s) to {hex(address)}.",
@@ -33,7 +33,7 @@ def read_memory(session: SessionState, address: int, size: int) -> dict:
     if blocked := ensure_memory_read_allowed(runtime_config_for(session), size):
         return blocked
     try:
-        data = session.probe.read_memory(address, size)
+        data = session.services.probe.read_memory(address, size)
     except Exception as e:
         return {
             "status": "error",
@@ -63,7 +63,7 @@ def dump_memory(
     if blocked := ensure_memory_read_allowed(runtime_config_for(session), size):
         return blocked
     try:
-        data = session.probe.read_memory(address, size)
+        data = session.services.probe.read_memory(address, size)
     except Exception as e:
         return {"status": "error", "summary": str(e)}
 
@@ -113,7 +113,7 @@ def memory_find(
     if blocked := ensure_memory_read_allowed(runtime_config_for(session), size):
         return blocked
     try:
-        data = session.probe.read_memory(address, size)
+        data = session.services.probe.read_memory(address, size)
     except Exception as e:
         return {"status": "error", "summary": str(e)}
 
@@ -151,17 +151,17 @@ def step_n_instructions(session: SessionState, count: int = 10) -> dict:
     steps: list[dict] = []
     try:
         for i in range(actual):
-            result = session.probe.step()
+            result = session.services.probe.step()
             pc_value = result.get("pc")
             pc = int(pc_value, 16) if isinstance(pc_value, str) else int(pc_value)
             symbol = None
-            if session.elf.is_loaded:
-                symbol = session.elf.resolve_address(pc).get("symbol")
+            if session.services.elf.is_loaded:
+                symbol = session.services.elf.resolve_address(pc).get("symbol")
             steps.append({"step": i + 1, "pc": hex(pc), "symbol": symbol})
         if steps:
             final_pc = int(steps[-1]["pc"], 16)
         else:
-            final_pc = session.probe.read_core_registers()["pc"]
+            final_pc = session.services.probe.read_core_registers()["pc"]
     except Exception as e:
         return {"status": "error", "summary": str(e)}
     return {
@@ -226,14 +226,14 @@ def read_memory_map(session: SessionState) -> dict:
     """Return Cortex-M address space regions and ELF section layout (if loaded)."""
     elf_sections: list[dict] = []
     elf_sections_error = None
-    if session.elf.is_loaded and hasattr(session.elf, "get_sections"):
+    if session.services.elf.is_loaded and hasattr(session.services.elf, "get_sections"):
         try:
-            elf_sections = session.elf.get_sections()
+            elf_sections = session.services.elf.get_sections()
         except Exception as e:
             elf_sections_error = str(e)
 
     summary = f"Described {len(_CORTEX_M_REGIONS)} Cortex-M memory region(s)."
-    if session.elf.is_loaded:
+    if session.services.elf.is_loaded:
         if elf_sections_error is None:
             summary = f"{summary} Parsed {len(elf_sections)} ELF section(s)."
         else:
@@ -242,7 +242,7 @@ def read_memory_map(session: SessionState) -> dict:
         "status": "ok",
         "summary": summary,
         "regions": _CORTEX_M_REGIONS,
-        "elf_loaded": session.elf.is_loaded,
+        "elf_loaded": session.services.elf.is_loaded,
         "sections": elf_sections,
         "elf_sections_error": elf_sections_error,
     }
@@ -250,9 +250,9 @@ def read_memory_map(session: SessionState) -> dict:
 
 def compare_elf_to_flash(session: SessionState) -> dict:
     """Compare ELF loadable sections against target memory to verify flash contents."""
-    if not session.elf.is_loaded:
+    if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded."}
-    sections = session.elf.get_section_data()
+    sections = session.services.elf.get_section_data()
     if not sections:
         return {"status": "error", "summary": "No loadable PROGBITS sections found in ELF."}
 
@@ -292,7 +292,7 @@ def compare_elf_to_flash(session: SessionState) -> dict:
                 read_size = min(chunk_size, size - offset)
                 if blocked := ensure_memory_read_allowed(config, read_size):
                     raise ValueError(blocked["summary"])
-                actual = session.probe.read_memory(load_address + offset, read_size)
+                actual = session.services.probe.read_memory(load_address + offset, read_size)
                 for index, (expected_byte, actual_byte) in enumerate(
                     zip(expected[offset : offset + read_size], actual, strict=True)
                 ):
@@ -372,10 +372,10 @@ def memory_snapshot(session: SessionState, address: int, size: int, label: str =
     if blocked := ensure_memory_read_allowed(runtime_config_for(session), size):
         return blocked
     try:
-        data = session.probe.read_memory(address, size)
+        data = session.services.probe.read_memory(address, size)
     except Exception as e:
         return {"status": "error", "summary": str(e)}
-    session.memory_snapshots[label] = {"address": address, "size": size, "data": data}
+    session.artifacts.memory_snapshots[label] = {"address": address, "size": size, "data": data}
     return {
         "status": "ok",
         "summary": f"Snapshot '{label}' taken: {size} byte(s) at {hex(address)}.",
@@ -387,9 +387,9 @@ def memory_snapshot(session: SessionState, address: int, size: int, label: str =
 
 def memory_diff(session: SessionState, label: str = "default") -> dict:
     """Re-read the region from a previous snapshot and return changed bytes."""
-    snap = session.memory_snapshots.get(label)
+    snap = session.artifacts.memory_snapshots.get(label)
     if snap is None:
-        labels = list(session.memory_snapshots.keys())
+        labels = list(session.artifacts.memory_snapshots.keys())
         return {
             "status": "error",
             "summary": f"No snapshot with label '{label}'.",
@@ -402,7 +402,7 @@ def memory_diff(session: SessionState, label: str = "default") -> dict:
     if blocked := ensure_memory_read_allowed(runtime_config_for(session), size):
         return blocked
     try:
-        new_data = session.probe.read_memory(address, size)
+        new_data = session.services.probe.read_memory(address, size)
     except Exception as e:
         return {"status": "error", "summary": str(e)}
 

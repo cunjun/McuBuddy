@@ -157,7 +157,7 @@ Core files:
 | `src/McuBuddy/mcp_domain_tools.py` | Domain tool registration |
 | `src/McuBuddy/mcp_execution.py` | Session execution boundary |
 | `src/McuBuddy/tool_safety.py` | Safety policy registry |
-| `src/McuBuddy/tool_profiles.py` | `core` / `full` tool surfaces |
+| `src/McuBuddy/tool_profiles.py` | `core` plus explicit domain toolsets |
 | `src/McuBuddy/session.py` | Debug session |
 | `src/McuBuddy/backends/` | Probe backend adapters |
 | `src/McuBuddy/result.py` | Shared result envelope |
@@ -200,9 +200,9 @@ are different evidence levels and must be reported separately.
 ## 7. Tool Surface and Profiles
 
 Use `core` by default. It covers common read-only diagnosis and controlled
-execution. Advanced or high-impact tools are registered only when
-`MCUBUDDY_TOOL_PROFILE=full` is set before startup. A live MCP session cannot
-upgrade its profile.
+execution. Advanced or high-impact tools are registered only through explicit
+`MCUBUDDY_TOOLSETS` selected before startup. A live MCP session cannot expand
+its registered tool surface.
 
 Exact signatures belong in the [Tool Reference](docs/tool-reference.md).
 Chinese usage notes are in the
@@ -245,7 +245,7 @@ When adding an MCP tool:
 1. implement testable logic in a domain module;
 2. register safety and execution policy in `tool_safety.py`;
 3. expose it through the shared registrar;
-4. decide whether it belongs to `core` or `full`;
+4. assign it to `default` or one explicit domain toolset;
 5. update tests, the tool reference, and both project guides.
 
 When adding a backend, implement the `ProbeBackend` contract and record actual
@@ -394,8 +394,7 @@ For environment variables and alternate launchers, see [Windows MCP configuratio
 The default `core` profile is sufficient for discovery, connection, read-only inspection, evidence packages, and common build/flash entry points. Begin here.
 <!-- /mcubuddy-profile -->
 
-<!-- mcubuddy-profile: full -->
-Set `MCUBUDDY_TOOL_PROFILE=full` before server startup only when you need specialized diagnosis, smoke tests, fine-grained stepping, run-to-location, or other advanced controls.
+Select the required `MCUBUDDY_TOOLSETS` before server startup when you need specialized diagnosis, smoke tests, fine-grained stepping, run-to-location, or other advanced controls.
 <!-- /mcubuddy-profile -->
 
 ## 6. Discover and connect
@@ -527,7 +526,7 @@ needed by the workflow:
 Valid values are `probe`, `diagnose`, `build_flash`, `rtos`, `logs`, and `experimental`. The
 `default` toolset is always present. Restart the MCP client after changing the selection.
 
-## Enable the full compatibility profile
+## Enable explicit domain toolsets
 
 The default profile is `core`. Add an environment variable only when advanced tools are required:
 
@@ -539,14 +538,14 @@ The default profile is `core`. Add an environment variable only when advanced to
       "args": [],
       "cwd": "C:\\path\\to\\McuBuddy",
       "env": {
-        "MCUBUDDY_TOOL_PROFILE": "full"
+        "MCUBUDDY_TOOLSETS": "probe,diagnose"
       }
     }
   }
 }
 ```
 
-Use `full` for compatibility or exceptional expert workflows; normal installations should select
+Select only the domains needed for an expert workflow; normal installations should select
 domain toolsets. An already-running server always keeps its existing tool set.
 
 ## Using a module launcher on PATH
@@ -641,8 +640,7 @@ configure_probe(backend="pyocd")
 The default `core` profile covers the standard evidence-first flow.
 <!-- /mcubuddy-profile -->
 
-<!-- mcubuddy-profile: full -->
-Enable `MCUBUDDY_TOOL_PROFILE=full` before server startup for specialized diagnosis, board smoke tests, run-to-location, or fine source stepping. Explain why the expanded tool surface is needed.
+Enable the required `MCUBUDDY_TOOLSETS` before server startup for specialized diagnosis, board smoke tests, run-to-location, or fine source stepping. Explain why each expanded domain is needed.
 <!-- /mcubuddy-profile -->
 
 ## Route by symptom
@@ -653,9 +651,9 @@ Enable `MCUBUDDY_TOOL_PROFILE=full` before server startup for specialized diagno
 | HardFault/crash | `collect_crash_evidence(...)` | `backtrace()`, matching ELF, stack memory |
 | UART/SPI/I2C/GPIO silent | `collect_peripheral_evidence(...)` | SVD clock, GPIO, peripheral and NVIC state |
 | RTOS stall | `collect_rtos_evidence(...)` | task list/context, logs, selected stacks |
-| Intermittent corruption | crash evidence and snapshots | full profile adds specialized diagnosis/watchpoints |
-| Clock suspicion | RCC/SVD evidence | full profile adds specialized clock diagnosis |
-| Need path proof | stopped context and breakpoints | full profile adds run-to/source stepping |
+| Intermittent corruption | crash evidence and snapshots | `diagnose,probe` adds specialized diagnosis/watchpoints |
+| Clock suspicion | RCC/SVD evidence | `diagnose,probe` adds specialized clock diagnosis |
+| Need path proof | stopped context and breakpoints | `probe` adds run-to/source stepping |
 
 Do not enumerate every tool in this playbook; use the [tool reference](docs/tool-reference.md) for exact signatures.
 
@@ -814,7 +812,7 @@ Include capture backend, channel/port settings, timestamps when available, trunc
 
 ## Full-profile path proof
 
-Enable `MCUBUDDY_TOOL_PROFILE=full` before server startup, then use a deliberately chosen execution-control call:
+Enable the required `probe` toolset before server startup, then use a deliberately chosen execution-control call:
 
 ```text
 run_to_function(function="main")
@@ -963,7 +961,7 @@ Use SVD evidence for clock gates, GPIO modes, interrupt enables, and peripheral 
 | RTOS stall | `collect_rtos_evidence(...)`, task context |
 | No logs | RTT/UART configuration, then log reads |
 
-Specialized diagnosis and fine execution control require the `full` profile. Enable it only after the core evidence shows why it is needed.
+Specialized diagnosis and fine execution control require the corresponding `diagnose` or `probe` toolset. Enable it only after the core evidence shows why it is needed.
 
 ## 9. Record validation
 
@@ -1208,7 +1206,7 @@ The skill explains when to use a capability; the tool reference owns exhaustive 
 
 ### GPT-5.6 Tool-Surface Evaluation
 
-This document defines the repeatable evaluation used to compare the legacy `full` tool catalog with
+This document defines the repeatable evaluation used to compare the legacy aggregate tool catalog with
 the v0.5.2 `core` profile. The machine-readable scenario source is
 `tests/evaluation/gpt5p6_scenarios.yaml`.
 
@@ -1236,6 +1234,6 @@ high-risk tool calls, total calls, and failure reason when a scenario cannot com
 ## Comparison Rule
 
 The `core` profile passes the tool-surface comparison only when it completes or clearly blocks on
-the same representative flows as `full`, avoids calls to hidden tools, and reduces invalid or
+the same representative flows through explicit toolsets, avoids calls to hidden tools, and reduces invalid or
 high-risk tool selection. Hardware success can only be claimed when a real board path has been run
 and recorded in the validation guide or validation records.

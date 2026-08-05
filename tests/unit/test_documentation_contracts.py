@@ -22,18 +22,19 @@ def _minimal_repo(tmp_path: Path) -> Path:
     )
     _write(
         tmp_path / "src" / "McuBuddy" / "tool_safety.py",
+        "DEFAULT_TOOL_NAMES = frozenset({'doctor', 'probe_connect'})\n"
         "TOOL_POLICIES = {'doctor': {}, 'probe_connect': {}, 'diagnose': {}}\n"
         "CONCURRENT_TOOLS = frozenset({'list_supported_targets'})\n",
     )
     _write(
         tmp_path / "README.md",
-        "default core\nMCUBUDDY_TOOL_PROFILE=full\n[Project Guide](PROJECT_GUIDE.md)\n"
+        "default core\nMCUBUDDY_TOOLSETS\n[Project Guide](PROJECT_GUIDE.md)\n"
         "[Tool Reference](docs/tool-reference.md)\nexecution-changing\n"
         f"Upstream: {UPSTREAM_URL}\n",
     )
     _write(
         tmp_path / "README_zh.md",
-        "默认 core\nMCUBUDDY_TOOL_PROFILE=full\n[项目指南](PROJECT_GUIDE_zh.md)\n"
+        "默认 core\nMCUBUDDY_TOOLSETS\n[项目指南](PROJECT_GUIDE_zh.md)\n"
         "[工具参考](docs/tool-reference.md)\n执行状态变化\n"
         f"上游：{UPSTREAM_URL}\n",
     )
@@ -43,7 +44,7 @@ def _minimal_repo(tmp_path: Path) -> Path:
         "src/McuBuddy/mcp_execution.py\n"
         "src/McuBuddy/tool_safety.py\n"
         "src/McuBuddy/tool_profiles.py\n"
-        "SessionToolRegistrar\nProbeBackend\ncore\nfull\n"
+        "SessionToolRegistrar\nProbeBackend\ncore\nMCUBUDDY_TOOLSETS\n"
     )
     _write(tmp_path / "PROJECT_GUIDE.md", "# Guide\n\n> Project version: 0.5.2\n" + sections)
     _write(
@@ -74,14 +75,14 @@ def test_valid_repository_contract_passes(tmp_path: Path) -> None:
     assert validate_repository(repo) == []
 
 
-def test_core_region_rejects_full_only_tool(tmp_path: Path) -> None:
+def test_core_region_rejects_toolset_required_tool(tmp_path: Path) -> None:
     repo = _minimal_repo(tmp_path)
     _write(
         repo / "docs" / "example.md",
         "<!-- mcubuddy-profile: core -->\n`diagnose()`\n<!-- /mcubuddy-profile -->\n",
     )
     assert any(
-        "full-only tool 'diagnose'" in error for error in validate_repository(repo)
+        "toolset-required tool 'diagnose'" in error for error in validate_repository(repo)
     )
 
 
@@ -171,12 +172,12 @@ def test_project_guides_must_cover_architecture_contract(tmp_path: Path) -> None
 
 def test_missing_tool_contract_fails_closed(tmp_path: Path) -> None:
     repo = _minimal_repo(tmp_path)
-    (repo / "src" / "McuBuddy" / "tool_profiles.py").write_text(
-        "RENAMED_CORE_TOOLS = frozenset({'doctor'})\n",
+    (repo / "src" / "McuBuddy" / "tool_safety.py").write_text(
+        "TOOL_POLICIES = {'doctor': {}}\n",
         encoding="utf-8",
     )
     assert any(
-        "unable to load CORE_TOOL_NAMES" in error for error in validate_repository(repo)
+        "unable to load DEFAULT_TOOL_NAMES" in error for error in validate_repository(repo)
     )
 
 

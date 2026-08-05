@@ -143,7 +143,7 @@ def _serve(args: argparse.Namespace) -> int:
 
     config = _load_command_config(args)
     session = SessionState(config=config)
-    session.probe = create_probe_backend(
+    session.services.probe = create_probe_backend(
         config.probe.backend,
         jlink_dll_path=config.probe.jlink_dll_path,
         probe_rs_sidecar_path=config.probe.probe_rs_sidecar_path,
@@ -193,12 +193,12 @@ def _probes(args: argparse.Namespace) -> int:
     try:
         session = SessionState()
         session.config = config
-        session.probe = create_probe_backend(
+        session.services.probe = create_probe_backend(
             config.probe.backend,
             jlink_dll_path=config.probe.jlink_dll_path,
             probe_rs_sidecar_path=config.probe.probe_rs_sidecar_path,
         )
-        probes = session.probe.enumerate_probes()
+        probes = session.services.probe.enumerate_probes()
         report = {
             "status": "ok",
             "summary": f"Found {len(probes)} connected probe(s)."

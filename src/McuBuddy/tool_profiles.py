@@ -10,9 +10,8 @@ from .tool_safety import DEFAULT_TOOL_NAMES, TOOL_POLICIES, TOOLSET_MEMBERS
 
 PROFILE_ENV_VAR = "MCUBUDDY_TOOL_PROFILE"
 TOOL_PROFILE_CORE = "core"
-TOOL_PROFILE_FULL = "full"
-VALID_TOOL_PROFILES = frozenset({TOOL_PROFILE_CORE, TOOL_PROFILE_FULL})
-ToolProfileName = Literal["core", "full"]
+VALID_TOOL_PROFILES = frozenset({TOOL_PROFILE_CORE})
+ToolProfileName = Literal["core"]
 ToolStability = Literal["stable", "preview", "experimental"]
 CORE_TOOL_NAMES = DEFAULT_TOOL_NAMES
 VALID_TOOLSETS = frozenset(TOOLSET_MEMBERS)
@@ -47,11 +46,6 @@ TOOL_CATALOG = MappingProxyType(
         for name, policy in TOOL_POLICIES.items()
     }
 )
-
-# Both profiles are explicit allowlists. A newly decorated MCP callback remains hidden
-# until it is deliberately added to the governed tool catalog above.
-FULL_TOOL_NAMES = frozenset(TOOL_CATALOG)
-
 
 @dataclass(frozen=True)
 class ToolProfile:
@@ -98,9 +92,7 @@ def resolve_tool_profile(
             f"Unknown McuBuddy toolset(s): {', '.join(sorted(unknown))}. "
             f"Valid values are: {options}."
         )
-    if name == TOOL_PROFILE_FULL and selected:
-        raise ToolProfileError("The full profile already includes every toolset.")
-    enabled = FULL_TOOL_NAMES if name == TOOL_PROFILE_FULL else CORE_TOOL_NAMES
+    enabled = CORE_TOOL_NAMES
     if selected:
         enabled |= frozenset(
             tool_name for tool_name, spec in TOOL_CATALOG.items() if spec.toolsets & selected

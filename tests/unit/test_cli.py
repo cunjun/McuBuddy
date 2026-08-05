@@ -204,9 +204,9 @@ def test_config_precedence_is_cli_over_environment_over_file(tmp_path) -> None:
 
 
 def test_tool_profile_environment_override_remains_normalized() -> None:
-    config = load_config(environ={"MCUBUDDY_TOOL_PROFILE": " FULL "})
+    config = load_config(environ={"MCUBUDDY_TOOL_PROFILE": " CORE "})
 
-    assert config.server.tool_profile == "full"
+    assert config.server.tool_profile == "core"
 
 
 def test_toolsets_can_be_selected_from_environment() -> None:
@@ -298,7 +298,7 @@ def test_serve_uses_effective_probe_backend(monkeypatch) -> None:
     monkeypatch.setattr(cli, "create_probe_backend", lambda name, **kwargs: backend)
 
     assert cli.main(["serve", "--set", "probe.backend=jlink"]) == 0
-    assert captured["session"].probe is backend
+    assert captured["session"].services.probe is backend
     assert captured["session"].config.probe.backend == "jlink"
     assert captured["tool_profile"] == "core"
     assert captured["toolsets"] == []

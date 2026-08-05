@@ -6,12 +6,12 @@ McuBuddy treats MCP tools as a versioned public contract, not as a mirror of eve
 capability. Internal domain behavior may continue to grow, while the MCP surface remains bounded,
 explicit, and fail-closed.
 
-The project uses one governed catalog to describe every exposed tool. Startup profiles are presets
+The project uses one governed catalog to describe every available tool. The startup surface is
 derived from that catalog:
 
 - `core` is the stable 19-tool default surface for orchestration and session setup.
-- `full` is the explicit expert surface; it is not an automatic export of decorated callbacks.
 - toolsets describe domain ownership and are selectable only at process startup.
+- there is no aggregate compatibility profile.
 
 ## Invariants
 
@@ -29,7 +29,7 @@ derived from that catalog:
 
 `src/McuBuddy/tool_safety.py` remains the explicit registration gate for tool policies.
 `src/McuBuddy/tool_profiles.py` converts those policies into immutable `ToolSpec` entries and
-derives the `core` and `full` allowlists. `SessionToolRegistrar` applies the selected allowlist
+derives the `core` plus selected-toolset allowlist. `SessionToolRegistrar` applies that allowlist
 before FastMCP registers a callback.
 
 Catalog metadata is returned by `list_tool_safety()` so clients and maintainers can inspect:
@@ -52,20 +52,20 @@ The catalog classifies tools into these official startup domains:
 - `logs`: UART, RTT, SWO, and log lifecycle;
 - `experimental`: preview workflows and compatibility operations.
 
-`core` always contains `default` and may union explicit toolsets from `MCUBUDDY_TOOLSETS`. `full`
-contains all governed tools for compatibility. Neither selection changes inside a live process.
+`core` always contains `default` and may union explicit toolsets from `MCUBUDDY_TOOLSETS`.
+Selection does not change inside a live process.
 
 ## Delivery Phases
 
 ### Phase 1: fail-closed catalog — complete
 
 - Introduce immutable `ToolSpec` and `TOOL_CATALOG`.
-- Replace the unbounded `full` profile with an explicit allowlist.
+- Replace the unbounded legacy profile with explicit allowlists.
 - Reject manually constructed profiles without an allowlist.
 - Expose governance metadata through `list_tool_safety()`.
 - Add catalog, profile, and safety contract tests.
 
-This phase deliberately preserves the current 45 `core` tools and 118 `full` tools.
+This phase preserved all underlying tool implementations while bounding registration.
 
 ### Phase 2: explicit domain ownership — complete
 
@@ -75,8 +75,8 @@ This phase deliberately preserves the current 45 `core` tools and 118 `full` too
 - Add startup selectors for supported toolset combinations without permitting live privilege
   escalation inside an existing MCP session.
 
-Phase 2 reduces the default FastMCP schema from 45 to 19 tools while retaining all 118 governed
-tools behind explicit domain selection or the `full` compatibility profile.
+Phase 2 reduces the default FastMCP schema to 19 tools while retaining domain capabilities behind
+explicit toolset selection.
 
 ### Phase 3: bounded public surface
 
@@ -107,11 +107,11 @@ If any condition is missing, implement the capability in the domain layer and ke
 
 The Phase 1 and Phase 2 implementations are guarded by tests that verify:
 
-- `core` and `full` resolve to explicit immutable sets;
-- unknown future callbacks are denied by both profiles;
+- `core` plus selected toolsets resolves to an explicit immutable set;
+- unknown future callbacks are denied;
 - every registered public tool has safety metadata;
 - catalog and safety registries contain the same public tool names;
 - `list_tool_safety()` reports governance metadata;
-- FastMCP registers 19 tools for default `core` and 118 for `full`;
+- FastMCP registers exactly the default `core` set plus explicitly selected domains;
 - every catalog entry belongs to exactly one of the seven official toolsets;
 - generated reference documentation matches the runtime catalog.

@@ -57,7 +57,7 @@ def test_tool_rejects_explicitly_unsupported_capability_without_calling_backend(
         read_cycle_counter=lambda: calls.append("called"),
     )
 
-    result = read_cycle_counter(SimpleNamespace(probe=probe))
+    result = read_cycle_counter(SimpleNamespace(services=SimpleNamespace(probe=probe)))
 
     assert result["status"] == "error"
     assert "does not support" in result["summary"]

@@ -52,7 +52,7 @@ For a board problem without requested commands:
 
 - Start with 19 defaults. Enable needed `probe`, `diagnose`, `build_flash`, `rtos`, `logs`, or
   `experimental` toolsets before startup.
-- `MCUBUDDY_TOOL_PROFILE=full` remains a compatibility escape hatch, not the normal workflow.
+- No aggregate profile; enable only required startup toolsets.
 - Inspect hidden metadata with `list_tool_safety(include_hidden=true)`; never change profiles live.
 
 ## Symptom Routing

@@ -1,5 +1,7 @@
 from McuBuddy.config import RuntimeConfig
 from McuBuddy.demo.mock_session import MockSessionState
+from McuBuddy.session import SessionServices
+from McuBuddy.session import DebugArtifacts
 from McuBuddy.tools.debug_loop import run_debug_loop
 
 
@@ -141,10 +143,13 @@ class _HealthyBuildRuntime:
 
 class _HealthySession:
     def __init__(self) -> None:
-        self.probe = _HealthyProbeBackend()
-        self.log = _HealthyLogBackend()
-        self.elf = _HealthyElfManager()
-        self.build = _HealthyBuildRuntime()
+        self.services = SessionServices(
+            probe=_HealthyProbeBackend(),
+            log=_HealthyLogBackend(),
+            elf=_HealthyElfManager(),
+            build=_HealthyBuildRuntime(),
+        )
+        self.artifacts = DebugArtifacts()
         self.config = RuntimeConfig()
         self.config.probe.target = "cortex_m"
         self.config.log.port = "COM3"
@@ -199,4 +204,4 @@ def test_run_debug_loop_requires_confirmation_before_flash() -> None:
 
     assert result["status"] == "error"
     assert result["final_diagnosis"]["safety"]["requires_confirmation"] is True
-    assert session.build.calls == []
+    assert session.services.build.calls == []

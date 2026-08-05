@@ -82,8 +82,8 @@ def _make_session(svd_file: str, memory: dict[int, int]):
     probe.read_memory.side_effect = read_memory
 
     session = MagicMock()
-    session.svd = svd
-    session.probe = probe
+    session.services.svd = svd
+    session.services.probe = probe
     return session
 
 
@@ -123,7 +123,7 @@ def test_rcc_clock_enabled(svd_file):
 
 def test_svd_not_loaded():
     session = MagicMock()
-    session.svd.is_loaded = False
+    session.services.svd.is_loaded = False
     result = diagnose_peripheral_stuck(session, "USART2")
     assert result["status"] == "error"
     assert "SVD" in result["summary"]
@@ -161,8 +161,8 @@ def test_probe_not_connected(svd_file):
     probe.read_memory.side_effect = RuntimeError("no probe")
 
     session = MagicMock()
-    session.svd = svd
-    session.probe = probe
+    session.services.svd = svd
+    session.services.probe = probe
 
     result = diagnose_peripheral_stuck(session, "USART2")
     assert result["status"] == "error"
@@ -202,8 +202,8 @@ def test_rcc_register_read_failure(svd_file):
     probe.read_memory.side_effect = read_memory
 
     session = MagicMock()
-    session.svd = svd
-    session.probe = probe
+    session.services.svd = svd
+    session.services.probe = probe
 
     result = diagnose_peripheral_stuck(session, "USART2")
     assert result["status"] == "ok"

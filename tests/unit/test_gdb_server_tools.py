@@ -54,6 +54,7 @@ def test_start_gdb_server_uses_session_defaults() -> None:
         ),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_gdb_server(session, port=3335, persist=True)
 
     assert result["status"] == "ok"
@@ -81,6 +82,7 @@ def test_start_gdb_server_requires_target() -> None:
         gdb_server=SimpleNamespace(),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_gdb_server(session)
 
     assert result["status"] == "error"
@@ -98,6 +100,7 @@ def test_start_gdb_server_requires_explicit_confirmation_for_remote_binding() ->
         ),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_gdb_server(session, allow_remote=True)
 
     assert result["status"] == "error"
@@ -117,6 +120,7 @@ def test_start_gdb_server_allows_confirmed_remote_binding() -> None:
         ),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_gdb_server(session, allow_remote=True, confirm_remote=True)
 
     assert result["status"] == "ok"
@@ -135,6 +139,7 @@ def test_status_and_stop_wrap_runtime() -> None:
         )
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     status = get_gdb_server_status(session)
     stopped = stop_gdb_server(session, timeout_seconds=2.5)
 
@@ -188,6 +193,7 @@ def test_start_jlink_gdb_server_uses_session_defaults(monkeypatch) -> None:
         ),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_jlink_gdb_server(session, speed=1000)
 
     assert result["status"] == "ok"
@@ -217,6 +223,7 @@ def test_start_jlink_gdb_server_requires_target(monkeypatch) -> None:
         gdb_server=SimpleNamespace(),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_jlink_gdb_server(session)
 
     assert result["status"] == "error"
@@ -247,6 +254,7 @@ def test_start_jlink_gdb_server_retries_without_serial_on_selection_failure(monk
         gdb_server=SimpleNamespace(start_jlink=_start_jlink),
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     result = start_jlink_gdb_server(session)
 
     assert result["status"] == "ok"
@@ -273,6 +281,7 @@ def test_jlink_status_and_stop_wrap_runtime() -> None:
         )
     )
 
+    session.services = SimpleNamespace(gdb_server=session.gdb_server)
     status = get_jlink_gdb_server_status(session)
     stopped = stop_jlink_gdb_server(session, timeout_seconds=2.0)
 
