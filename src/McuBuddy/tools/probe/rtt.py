@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ...backends.probe.base import ProbeCapability, probe_supports
+from ...issue_reporting import issue_details
 from ...security_guards import ensure_rtt_scan_allowed, runtime_config_for
 from ...session import SessionState
 
@@ -24,14 +25,41 @@ def read_rtt_log(
     if blocked := ensure_rtt_scan_allowed(runtime_config_for(session), search_size):
         return blocked
 
+    scan_start = search_start
+    scan_end = search_start + search_size
+    get_regions = getattr(session.services.probe, "get_memory_regions", None)
+    if callable(get_regions):
+        known_regions = get_regions()
+        ram_regions = [
+            region
+            for region in known_regions
+            if str(region.get("kind", "")).lower() == "ram"
+            and int(region["end"]) > search_start
+            and int(region["start"]) < scan_end
+        ]
+        if known_regions and not ram_regions:
+            return {
+                "status": "error",
+                "summary": "The requested RTT scan range does not overlap target RAM.",
+                "issue": issue_details(
+                    "hardware_limit",
+                    evidence="Target memory map contains no RAM in the requested scan range.",
+                    impact="Scanning this range could cause an SWD/JTAG memory fault.",
+                    next_step="Load the correct target pack or pass a RAM-backed search range.",
+                ),
+            }
+        if ram_regions:
+            scan_start = max(search_start, min(int(region["start"]) for region in ram_regions))
+            scan_end = min(scan_end, max(int(region["end"]) for region in ram_regions))
+
     magic = b"SEGGER RTT\x00"
     chunk_size = 1024
     overlap = 16
 
     try:
         cb_addr = None
-        end_addr = search_start + search_size
-        addr = search_start
+        end_addr = scan_end
+        addr = scan_start
 
         while addr < end_addr:
             read_size = min(chunk_size, end_addr - addr)
@@ -56,6 +84,13 @@ def read_rtt_log(
             return {
                 "status": "error",
                 "summary": "RTT control block not found in scanned range.",
+                "scan_range": {"start": hex(scan_start), "end": hex(scan_end)},
+                "issue": issue_details(
+                    "firmware_not_applicable",
+                    evidence="No SEGGER RTT control block was found inside target RAM.",
+                    impact="This firmware may not include or initialize RTT logging.",
+                    next_step="Use UART logging or confirm that SEGGER RTT is linked and initialized.",
+                ),
             }
 
         header = session.services.probe.read_memory(cb_addr, 24)

@@ -6,6 +6,7 @@ from McuBuddy.backends.probe.base import ProbeCapability, probe_supports
 from McuBuddy.backends.probe.jlink_backend import JLinkProbeBackend
 from McuBuddy.backends.probe.pyocd_backend import PyOcdProbeBackend
 from McuBuddy.tools.probe import read_cycle_counter
+from McuBuddy.tools.probe.rtos_tasks import list_rtos_tasks
 
 
 def test_backends_declare_required_core_capabilities() -> None:
@@ -62,3 +63,16 @@ def test_tool_rejects_explicitly_unsupported_capability_without_calling_backend(
     assert result["status"] == "error"
     assert "does not support" in result["summary"]
     assert calls == []
+
+
+def test_rtos_tools_report_firmware_not_applicable_without_freertos_symbols() -> None:
+    elf = SimpleNamespace(
+        is_loaded=True,
+        resolve_symbol=lambda _name: {"address": None},
+    )
+    session = SimpleNamespace(services=SimpleNamespace(elf=elf, probe=SimpleNamespace()))
+
+    result = list_rtos_tasks(session)
+
+    assert result["status"] == "error"
+    assert result["issue"]["category"] == "firmware_not_applicable"

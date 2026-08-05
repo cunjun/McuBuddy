@@ -98,3 +98,26 @@ def test_read_rtt_log_blocks_oversized_fallback_scan_before_memory_read() -> Non
     assert result["status"] == "error"
     assert result["security"]["guard"] == "security.max_rtt_scan_size"
     assert probe.read_calls == []
+
+
+def test_read_rtt_log_clamps_fallback_scan_to_target_ram() -> None:
+    probe = _FallbackProbe()
+    reads: list[tuple[int, int]] = []
+    probe.get_memory_regions = lambda: [
+        {"start": 0x20000000, "end": 0x20000400, "kind": "ram"}
+    ]
+
+    def read_memory(address: int, size: int) -> bytes:
+        reads.append((address, size))
+        return b"\x00" * size
+
+    probe.read_memory = read_memory
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe))
+
+    result = read_rtt_log(session, search_start=0x20000000, search_size=0x50000)
+
+    assert result["status"] == "error"
+    assert result["issue"]["category"] == "firmware_not_applicable"
+    assert result["scan_range"] == {"start": "0x20000000", "end": "0x20000400"}
+    assert reads
+    assert all(address + size <= 0x20000400 for address, size in reads)

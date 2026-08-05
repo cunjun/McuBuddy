@@ -34,11 +34,11 @@ not imply that a blocked operation is authorized by the active configuration.
 | Probe connect / halt / reset / resume / step | Yes | Yes | Hardware-validated on STM32L496VETx and STM32F103C8 |
 | Source-level debug | Yes | Yes | `run_to_function`, `run_to_source`, `source_step`, `step_over`, `step_out` |
 | Breakpoints / watchpoints | Yes | Yes | Hardware-validated on both main boards |
-| Memory / register access | Yes | Yes | Includes FPU and fault registers |
+| Memory / register access | Yes | Yes | FPU and MPU results remain target-dependent; cores without them return `hardware_limit` |
 | Flash erase / program / verify | Yes | Yes | Validated on scratch-sector workflows and active firmware images |
-| RTT | Yes | Yes | J-Link uses native RTT first; pyOCD uses scan-based path |
-| RTOS task listing / context | Yes | Partial | Primary full validation done on STM32L496VETx + ST-Link; J-Link path is not yet equivalently validated |
-| GDB server lifecycle | Yes | Yes | pyOCD GDB server and J-Link GDB server both validated |
+| RTT | Yes | Yes | J-Link uses native RTT first; scan fallback is clipped to known target RAM and reports firmware without RTT separately |
+| RTOS task listing / context | Yes | Partial | Requires matching FreeRTOS symbols; bare-metal firmware returns `firmware_not_applicable` |
+| GDB server lifecycle | Yes | Yes | Startup requires both a live child process and a listening TCP port; later exits retain code and log evidence |
 | DWT cycle counter | No current public path | Yes | Hardware-validated on STM32F103C8 + J-Link |
 | SWO log read | No current public path | Partial | Backend path works; text capture depends on board wiring |
 
@@ -139,5 +139,10 @@ before flash, reset-heavy, or diagnosis workflows.
 
 - SWO remains board-dependent even when the J-Link backend path itself is working.
 - RTOS inspection assumes FreeRTOS symbols are present and consistent with the loaded ELF.
+- FPU, MPU, DWT, SWO, and ITM availability depends on both the active probe backend and the target
+  core. McuBuddy reports these hardware/configuration boundaries explicitly instead of returning
+  empty register sets as success.
+- Diagnostic conclusions require positive evidence. A tool-induced halt or a single stationary PC
+  sample is not sufficient to claim a startup failure or HardFault.
 - Build/flash integration is still Keil UV4 centric on Windows.
 - Device patching is intentionally lightweight; it is not yet a full plugin or per-board script system.

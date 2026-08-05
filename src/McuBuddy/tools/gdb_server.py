@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..issue_reporting import issue_details
 from ..session import SessionState
 
 
@@ -34,6 +35,7 @@ def start_gdb_server(
     resolved_target = target or session.config.probe.target
     resolved_unique_id = unique_id if unique_id is not None else session.config.probe.unique_id
     resolved_elf_path = elf_path if elf_path is not None else session.config.elf.path
+    resolved_pack_paths = list(getattr(session.config.probe, "pack_paths", []))
 
     if not resolved_target:
         return {
@@ -56,6 +58,7 @@ def start_gdb_server(
             persist=persist,
             elf_path=resolved_elf_path,
             cwd=cwd,
+            pack_paths=resolved_pack_paths,
         )
     except Exception as e:
         return {"status": "error", "summary": str(e)}
@@ -71,14 +74,31 @@ def stop_gdb_server(session: SessionState, timeout_seconds: float = 5.0) -> dict
 def get_gdb_server_status(session: SessionState) -> dict:
     try:
         status = session.services.gdb_server.status()
+        exited = not status["running"] and status.get("exit_code") is not None
         return {
-            "status": "ok",
+            "status": "partial" if exited else "ok",
             "summary": (
                 f"GDB server is running on {status['host']}:{status['port']}."
                 if status["running"]
-                else "GDB server is not running."
+                else (
+                    f"GDB server exited with code {status['exit_code']}."
+                    if exited
+                    else "GDB server is not running."
+                )
             ),
             **status,
+            **(
+                {
+                    "issue": issue_details(
+                        "tool_failure",
+                        evidence=f"The GDB server process exited with code {status['exit_code']}.",
+                        impact="The debug port is no longer available to GDB clients.",
+                        next_step="Inspect log_tail and resolve probe ownership, target, or port conflicts.",
+                    )
+                }
+                if exited
+                else {}
+            ),
         }
     except Exception as e:
         return {"status": "error", "summary": str(e)}

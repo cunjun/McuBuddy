@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ...issue_reporting import issue_details
 from ...session import SessionState
 
 
@@ -34,9 +35,14 @@ def list_rtos_tasks(
     if current_tcb_ptr is None:
         return {
             "status": "error",
-            "summary": "Symbol 'pxCurrentTCB' not found — is this a FreeRTOS target?",
+            "summary": "FreeRTOS symbol 'pxCurrentTCB' was not found in the loaded firmware.",
+            "issue": issue_details(
+                "firmware_not_applicable",
+                evidence="The loaded ELF does not define pxCurrentTCB.",
+                impact="FreeRTOS task inspection is not applicable to this firmware.",
+                next_step="Use bare-metal stack, interrupt, and execution-context tools instead.",
+            ),
         }
-
     try:
         running_tcb = read32(current_tcb_ptr)
         num_tasks_ptr = _sym("uxCurrentNumberOfTasks")

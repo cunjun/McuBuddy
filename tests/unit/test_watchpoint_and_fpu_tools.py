@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import McuBuddy.backends.probe.pyocd_backend as pyocd_backend_module
 from McuBuddy.backends.probe.pyocd_backend import PyOcdProbeBackend
-from McuBuddy.tools.probe import read_fpu_registers
+from McuBuddy.tools.probe import read_fpu_registers, read_mpu_regions
 
 
 class _FakeProbe:
@@ -37,6 +37,27 @@ def test_read_fpu_registers_keeps_float_values() -> None:
     assert result["registers"]["s0"] == 1.5
     assert result["registers"]["s1"] == 2.25
     assert result["registers"]["fpscr"] == "0x10"
+
+
+def test_read_fpu_registers_reports_hardware_limit_when_registers_are_absent() -> None:
+    probe = SimpleNamespace(read_fpu_registers=lambda: {"s0": None, "fpscr": None})
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe))
+
+    result = read_fpu_registers(session)
+
+    assert result["status"] == "error"
+    assert result["issue"]["category"] == "hardware_limit"
+    assert "FPU" in result["summary"]
+
+
+def test_read_mpu_regions_reports_hardware_limit_when_mpu_is_absent() -> None:
+    probe = SimpleNamespace(read_memory=lambda _address, _size: b"\x00" * 4)
+    session = SimpleNamespace(services=SimpleNamespace(probe=probe))
+
+    result = read_mpu_regions(session, confirm=True)
+
+    assert result["status"] == "error"
+    assert result["issue"]["category"] == "hardware_limit"
 
 
 def test_watchpoint_remove_uses_saved_size_and_type(monkeypatch) -> None:

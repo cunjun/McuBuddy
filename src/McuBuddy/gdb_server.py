@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import socket
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
 from typing import Any
+
+from .issue_reporting import issue_details
 
 
 class GdbServerRuntime:
@@ -43,7 +46,8 @@ class GdbServerRuntime:
         persist: bool = False,
         elf_path: str | None = None,
         cwd: str | None = None,
-        startup_timeout_seconds: float = 1.0,
+        pack_paths: list[str] | None = None,
+        startup_timeout_seconds: float = 5.0,
     ) -> dict[str, Any]:
         if self.is_running():
             return {
@@ -85,6 +89,12 @@ class GdbServerRuntime:
             command.append("--allow-remote")
         if persist:
             command.append("--persist")
+        usable_pack = next(
+            (str(Path(path).resolve()) for path in (pack_paths or []) if Path(path).is_file()),
+            None,
+        )
+        if usable_pack:
+            command.extend(["--pack", usable_pack])
 
         process = subprocess.Popen(
             command,
@@ -93,10 +103,14 @@ class GdbServerRuntime:
             stderr=subprocess.STDOUT,
             text=True,
         )
-        time.sleep(max(0.1, startup_timeout_seconds))
+        ready = self._wait_until_ready(process, host, port, startup_timeout_seconds)
 
-        if process.poll() is not None:
+        if not ready:
             exit_code = process.returncode
+            if process.poll() is None:
+                process.terminate()
+                process.wait(timeout=1.0)
+                exit_code = process.returncode
             log_handle.close()
             self._log_handle = None
             log_text = (
@@ -109,7 +123,11 @@ class GdbServerRuntime:
             self._last_exit_code = exit_code
             return {
                 "status": "error",
-                "summary": f"GDB server exited during startup with code {exit_code}.",
+                "summary": (
+                    f"GDB server exited during startup with code {exit_code}."
+                    if exit_code not in (None, 0)
+                    else f"GDB server did not listen on {host}:{port} before startup timeout."
+                ),
                 "running": False,
                 "host": host,
                 "port": port,
@@ -124,6 +142,12 @@ class GdbServerRuntime:
                 "log_path": str(log_path),
                 "log_tail": self._tail_text(log_text),
                 "exit_code": exit_code,
+                "issue": issue_details(
+                    "tool_failure",
+                    evidence=f"The child process never exposed the GDB port; exit code={exit_code}.",
+                    impact="A client cannot attach even though the process launch was attempted.",
+                    next_step="Inspect log_tail for probe ownership, target, or port conflicts.",
+                ),
             }
 
         self._process = process
@@ -286,7 +310,11 @@ class GdbServerRuntime:
 
     def status(self) -> dict[str, Any]:
         running = self.is_running()
-        return {
+        if self._process is not None and not running:
+            self._last_exit_code = self._process.returncode
+            self._process = None
+            self._close_log_handle()
+        result = {
             "running": running,
             "state": "running" if running else "stopped",
             "backend": self._backend,
@@ -306,9 +334,40 @@ class GdbServerRuntime:
             "log_path": self._log_path,
             "exit_code": None if running else self._last_exit_code,
         }
+        if not running and self._log_path and Path(self._log_path).exists():
+            result["log_tail"] = self._tail_text(
+                Path(self._log_path).read_text(encoding="utf-8", errors="replace")
+            )
+        return result
 
     def is_running(self) -> bool:
         return self._process is not None and self._process.poll() is None
+
+    @staticmethod
+    def _wait_until_ready(
+        process: subprocess.Popen[str], host: str, port: int, timeout_seconds: float
+    ) -> bool:
+        deadline = time.monotonic() + max(0.1, timeout_seconds)
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                return False
+            if GdbServerRuntime._port_is_bound(host, port):
+                return True
+            time.sleep(0.05)
+        return False
+
+    @staticmethod
+    def _port_is_bound(host: str, port: int) -> bool:
+        """Check listener readiness without opening and consuming a GDB client connection."""
+        bind_host = "127.0.0.1" if host == "0.0.0.0" else host
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.bind((bind_host, port))
+        except OSError:
+            return True
+        finally:
+            sock.close()
+        return False
 
     @staticmethod
     def _tail_text(text: str, line_count: int = 20) -> list[str]:

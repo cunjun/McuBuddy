@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ...backends.probe.base import ProbeCapability, probe_supports
+from ...issue_reporting import issue_details
 from ...session import SessionState
 from ...tool_safety import require_tool_confirmation
 
@@ -34,6 +35,12 @@ def read_fpu_registers(session: SessionState) -> dict:
         return {
             "status": "error",
             "summary": "Active probe backend does not support FPU register reads.",
+            "issue": issue_details(
+                "configuration",
+                evidence="The active probe backend does not declare FPU register capability.",
+                impact="FPU state cannot be collected through this backend.",
+                next_step="Use a backend with FPU register support or inspect the integer context.",
+            ),
         }
     try:
         values = session.services.probe.read_fpu_registers()
@@ -41,6 +48,17 @@ def read_fpu_registers(session: SessionState) -> dict:
         return {
             "status": "error",
             "summary": "Active probe backend does not support FPU register reads.",
+        }
+    if not values or all(value is None for value in values.values()):
+        return {
+            "status": "error",
+            "summary": "The target did not expose FPU registers; this MCU likely has no FPU.",
+            "issue": issue_details(
+                "hardware_limit",
+                evidence="Every requested FPU register was unavailable.",
+                impact="FPU state inspection cannot be used on this target.",
+                next_step="Use core registers and integer stack context instead.",
+            ),
         }
     return {
         "status": "ok",
@@ -56,6 +74,12 @@ def read_cycle_counter(session: SessionState, confirm: bool = False) -> dict:
         return {
             "status": "error",
             "summary": "Active probe backend does not support DWT cycle counter reads.",
+            "issue": issue_details(
+                "configuration",
+                evidence="The active backend does not declare DWT cycle-counter capability.",
+                impact="Cycle-accurate timing cannot be measured through this debug path.",
+                next_step="Use a DWT-capable MCU/backend or an external timing instrument.",
+            ),
         }
     if blocked := require_tool_confirmation("read_cycle_counter", confirm):
         return blocked
@@ -164,6 +188,19 @@ def read_mpu_regions(session: SessionState, confirm: bool = False) -> dict:
     mpu_type = int.from_bytes(session.services.probe.read_memory(_MPU_TYPE, 4), "little")
     mpu_ctrl = int.from_bytes(session.services.probe.read_memory(_MPU_CTRL, 4), "little")
     dregion = (mpu_type >> 8) & 0xFF
+    if dregion == 0:
+        return {
+            "status": "error",
+            "summary": "The target reports no MPU region slots.",
+            "mpu": {"type": hex(mpu_type), "control": hex(mpu_ctrl), "dregion": 0},
+            "regions": [],
+            "issue": issue_details(
+                "hardware_limit",
+                evidence="MPU_TYPE.DREGION is zero.",
+                impact="MPU configuration inspection is not applicable to this MCU.",
+                next_step="Use linker-map and direct memory-bound checks instead.",
+            ),
+        }
     regions: list[dict[str, int | bool | str]] = []
 
     for index in range(dregion):

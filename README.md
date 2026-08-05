@@ -47,6 +47,9 @@ startup toolset selection is explicit and immutable.
   pyOCD/J-Link GDB server lifecycles.
 - **Evidence-driven results**: Return structured target, state, and validation evidence so AI can
   continue an investigation instead of guessing code changes from symptoms alone.
+- **Actionable hardware boundaries**: Distinguish MCU limitations, firmware-inapplicable tools,
+  configuration problems, tool failures, and insufficient evidence, including impact and the next
+  safe check so unsupported paths are not debugged as firmware defects.
 
 ## 🏗️ How It Works
 

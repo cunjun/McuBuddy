@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ..models.diagnostics import LogContext, SymbolContext
+from ..issue_reporting import issue_details
 from ..session import SessionState
 from .diagnostic_context import collect_diagnostic_context
 from .diagnose_faults import _classify_fault, _infer_stage_from_logs, _logs_indicate_startup_success
@@ -26,11 +27,12 @@ def diagnose_startup_failure(
     )
     core = context.core
     pc_samples = [core["pc"]]
-    for _ in range(2):
-        try:
-            pc_samples.append(session.services.probe.read_core_registers()["pc"])
-        except Exception:
-            break
+    if not auto_halt:
+        for _ in range(2):
+            try:
+                pc_samples.append(session.services.probe.read_core_registers()["pc"])
+            except Exception:
+                break
     fault_registers = context.fault_registers
     pc_symbol = context.pc_symbol
     lr_symbol = context.lr_symbol
@@ -39,7 +41,9 @@ def diagnose_startup_failure(
     last_meaningful = context.last_meaningful_log
 
     fault_class = _classify_fault(fault_registers)
-    fault_detected = bool(fault_registers.get("cfsr", 0) or fault_registers.get("hfsr", 0))
+    fault_detected = bool(
+        fault_registers.get("cfsr", 0) or (fault_registers.get("hfsr", 0) & 0x40000002)
+    )
     stage = suspected_stage or _infer_stage_from_logs(last_meaningful)
     startup_completed = _logs_indicate_startup_success(log_lines)
 
@@ -52,9 +56,9 @@ def diagnose_startup_failure(
         summary = f"Startup stopped around {stage} with fault registers set."
         confidence = "high"
     else:
-        diagnosis_type = "startup_failure_no_fault_confirmed"
-        summary = f"Startup appears to stop around {stage} without a confirmed fault."
-        confidence = "medium"
+        diagnosis_type = "startup_state_indeterminate"
+        summary = f"Startup state around {stage} is indeterminate; no failure evidence was confirmed."
+        confidence = "low"
 
     cfsr = fault_registers.get("cfsr", 0)
     hfsr = fault_registers.get("hfsr", 0)
@@ -114,8 +118,8 @@ def diagnose_startup_failure(
     if hfsr & 0x40000000:
         evidence.append("HFSR FORCED bit set.")
 
-    return {
-        "status": "ok",
+    result = {
+        "status": "ok" if startup_completed or fault_detected else "partial",
         "diagnosis_type": diagnosis_type,
         "summary": summary,
         "confidence": confidence,
@@ -150,3 +154,16 @@ def diagnose_startup_failure(
         "evidence": evidence,
         "raw_refs": context.raw_refs,
     }
+    if not startup_completed and not fault_detected:
+        result["issue"] = issue_details(
+            "insufficient_evidence",
+            evidence="No startup-success marker or fault register was captured.",
+            impact=(
+                "The target was halted by the diagnostic tool, so unchanged PC samples cannot "
+                "prove firmware startup is stalled."
+                if auto_halt
+                else "The available samples do not prove a firmware startup failure."
+            ),
+            next_step="Collect live UART/RTT progress or halt at a reproducible failure point.",
+        )
+    return result

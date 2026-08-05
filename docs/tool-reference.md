@@ -52,6 +52,12 @@ enforces a bounded size and checksum, then atomically installs it after `confirm
 
 ## Evidence Packages
 
+Hardware-facing failures use a common `issue` object when McuBuddy can identify the boundary:
+`category` distinguishes `hardware_limit`, `firmware_not_applicable`, `configuration`,
+`tool_failure`, and `insufficient_evidence`; `evidence`, `impact`, and `next_step` explain what was
+observed, why the requested result is unavailable, and the fastest safe follow-up. Treat a missing
+capability as an explicit result, not as evidence that the firmware is defective.
+
 - `collect_crash_evidence`
 - `collect_startup_evidence`
 - `collect_peripheral_evidence`
@@ -216,6 +222,11 @@ RX evidence and requires `confirm=True` because it sends data to the target.
 - `diagnose_clock_issue`
 - `run_debug_loop`
 
+`diagnose_hardfault` reports `hardfault_detected` only when fault registers, exception state, or a
+resolved HardFault handler provide positive evidence. `diagnose_startup_failure` does not treat a PC
+that stopped because the tool called `halt` as proof of a firmware stall; without a fault or startup
+success marker it returns `startup_state_indeterminate` with `insufficient_evidence` guidance.
+
 ## Build, Flash, GDB, And Lifecycle
 
 - `build_project`
@@ -237,3 +248,7 @@ ends, but agents should call it explicitly before returning a final debugging co
 
 `start_gdb_server` binds to localhost by default. Remote binding requires both
 `allow_remote=True` and `confirm_remote=True` because the GDB server has no authentication.
+Startup succeeds only after the child process remains alive and its GDB TCP port is listening. The
+condition-based startup window allows slower CMSIS-Pack initialization but returns immediately once
+ready, without opening and consuming a GDB client connection. A later process exit is returned as
+`partial` with the exit code and log tail instead of an ambiguous “not running” result.

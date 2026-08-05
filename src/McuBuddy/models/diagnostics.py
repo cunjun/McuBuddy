@@ -49,3 +49,4 @@ class HardFaultDiagnosis(BaseModel):
     stack_snapshot: StackSnapshot
     evidence: list[str] = Field(default_factory=list)
     raw_refs: dict[str, Any] = Field(default_factory=dict)
+    issue: dict[str, Any] | None = None
