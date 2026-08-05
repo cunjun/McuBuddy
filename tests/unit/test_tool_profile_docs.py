@@ -4,17 +4,32 @@ from pathlib import Path
 import re
 
 from McuBuddy.tool_profiles import CORE_TOOL_NAMES
+from McuBuddy.tool_catalog_docs import render_tool_catalog_markdown
 
 
 ROOT = Path(__file__).parents[2]
 SKILL_PATH = ROOT / "skills" / "mcubuddy" / "SKILL.md"
 TOOL_CALL_RE = re.compile(r"`([a-z][a-z0-9_]*)\([^`]*\)`")
+GENERATED_CATALOG_PATH = ROOT / "docs" / "tool-catalog.generated.md"
+
+
+def test_generated_tool_catalog_is_current() -> None:
+    assert GENERATED_CATALOG_PATH.read_text(encoding="utf-8") == render_tool_catalog_markdown()
+
+
+def test_generated_tool_catalog_groups_every_public_tool() -> None:
+    catalog = render_tool_catalog_markdown()
+
+    assert "# Generated MCP Tool Catalog" in catalog
+    assert "## default" in catalog
+    assert "## diagnose" in catalog
+    assert "## experimental" in catalog
+    assert "`diagnose`" in catalog
+    assert sum(line.startswith("| `") for line in catalog.splitlines()) == 118
 
 
 def test_evaluation_scenarios_are_parseable_and_complete() -> None:
-    text = (ROOT / "tests" / "evaluation" / "gpt5p6_scenarios.yaml").read_text(
-        encoding="utf-8"
-    )
+    text = (ROOT / "tests" / "evaluation" / "gpt5p6_scenarios.yaml").read_text(encoding="utf-8")
 
     for scenario_id in [
         "board-bring-up",
@@ -56,20 +71,22 @@ def test_skill_resumes_known_projects_before_first_contact() -> None:
     assert "Do not run `first_contact()`" in skill
     assert "`doctor()`" in skill
     assert "`first_contact()`" in skill
-    assert skill.index("`inspect_project_memory(...)`") < skill.index(
-        "`get_runtime_config()`"
-    )
+    assert skill.index("`inspect_project_memory(...)`") < skill.index("`get_runtime_config()`")
     assert skill.index("`get_runtime_config()`") < skill.index("`first_contact()`")
     assert skill.index("Known Project Resume") < skill.index("Default Flow")
 
 
-def test_skill_marks_every_hidden_tool_call_as_full_only() -> None:
+def test_skill_marks_every_hidden_tool_call_with_a_startup_boundary() -> None:
     skill = SKILL_PATH.read_text(encoding="utf-8")
     unmarked: list[str] = []
 
     for line_number, line in enumerate(skill.splitlines(), start=1):
         for tool_name in TOOL_CALL_RE.findall(line):
-            if tool_name not in CORE_TOOL_NAMES and "full-only" not in line.lower():
+            if (
+                tool_name not in CORE_TOOL_NAMES
+                and "toolset" not in line.lower()
+                and "full-only" not in line.lower()
+            ):
                 unmarked.append(f"{line_number}:{tool_name}")
 
     assert unmarked == []

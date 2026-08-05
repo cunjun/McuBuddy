@@ -6,9 +6,10 @@ scenario guidance in the [Project Guide](../PROJECT_GUIDE.md), and capability st
 
 ## Tool Profiles
 
-McuBuddy v0.5.2 exposes the `core` profile by default. Set `MCUBUDDY_TOOL_PROFILE=full` at server
-startup to expose the explicitly governed expert catalog. The active profile is fixed for the lifetime of the
-MCP server process.
+McuBuddy exposes the `core` profile with the 19-tool `default` toolset. Add comma-separated domains
+with `MCUBUDDY_TOOLSETS=probe,diagnose`. Supported toolsets are `default`, `probe`, `diagnose`,
+`build_flash`, `rtos`, `logs`, and `experimental`. Set `MCUBUDDY_TOOL_PROFILE=full` only for the
+complete compatibility catalog. The selection is fixed for the MCP server process lifetime.
 
 Core tools:
 
@@ -19,7 +20,6 @@ Core tools:
 - `list_tool_safety`
 - `list_validation_records`
 - `pack_diagnose`
-- `pack_install`
 - `match_chip_name`
 - `get_target_info`
 - `list_connected_probes`
@@ -30,32 +30,10 @@ Core tools:
 - `probe_connect`
 - `disconnect_all`
 - `finish_debug_session`
-- `probe_halt`
-- `probe_resume`
-- `probe_reset`
 - `read_stopped_context`
-- `backtrace`
-- `collect_crash_evidence`
-- `collect_startup_evidence`
-- `collect_peripheral_evidence`
-- `collect_rtos_evidence`
-- `svd_read_peripheral`
-- `list_rtos_tasks`
-- `rtos_task_context`
-- `read_rtt_log`
-- `configure_log`
-- `log_connect`
-- `uart_send`
-- `uart_send_with_cleanup`
-- `uart_read_bytes`
-- `uart_exchange`
-- `log_tail`
-- `discover_keil_projects`
-- `configure_keil_project`
-- `build_project`
-- `flash_firmware`
-- `flash_image`
-- `compare_elf_to_flash`
+
+The generated [Tool Catalog](tool-catalog.generated.md) is the canonical per-tool assignment,
+including ownership, safety, stability, schema version, and deprecation metadata.
 
 `list_tool_safety()` lists only tools visible in the active profile. Use
 `list_tool_safety(include_hidden=true)` to inspect metadata for the full catalog without changing

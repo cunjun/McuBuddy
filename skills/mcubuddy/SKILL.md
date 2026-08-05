@@ -12,9 +12,8 @@ Prefer reads, separate evidence from hypotheses, and verify changes. Start in `c
 ## Local McuBuddy Discovery
 
 With MCP tools available, never ask for the checkout. Otherwise run `McuBuddy home show --json`.
-If unavailable, ask once, validate `pyproject.toml` plus `src/McuBuddy`, and find `.venv`. After
-confirmation run `McuBuddy home set <checkout> --confirm --json` with that executable. Store paths
-only in user-level `.mcubuddy/installations.json`.
+If unavailable, validate `pyproject.toml`, `src/McuBuddy`, and `.venv`; after confirmation run
+`McuBuddy home set <checkout> --confirm --json`. Store paths in `.mcubuddy/installations.json`.
 Never write a local checkout path into `SKILL.md` or repository documentation.
 
 ## Project Reference
@@ -43,7 +42,7 @@ For a board problem without requested commands:
 1. Read target-project memory, then runtime configuration.
 2. Resolve only ambiguous targets with `match_chip_name(...)` or `get_target_info(...)`.
 3. Configure only missing settings, then use `probe_connect(...)`.
-4. Establish a known state with `probe_halt()` or `probe_reset(halt=True)`.
+4. With the probe toolset, establish a known state with `probe_halt()` or `probe_reset(halt=True)`.
 5. Call `read_stopped_context()` and matching evidence collector.
 6. Add ELF, SVD, logs, or RTOS context only when useful.
 7. Test a hypothesis with the smallest safe check, then verify.
@@ -51,22 +50,24 @@ For a board problem without requested commands:
 
 ## Profile Boundary
 
-- Stay in `core`. Full-only calls require `MCUBUDDY_TOOL_PROFILE=full` before startup and restart.
+- Start with 19 defaults. Enable needed `probe`, `diagnose`, `build_flash`, `rtos`, `logs`, or
+  `experimental` toolsets before startup.
+- `MCUBUDDY_TOOL_PROFILE=full` remains a compatibility escape hatch, not the normal workflow.
 - Inspect hidden metadata with `list_tool_safety(include_hidden=true)`; never change profiles live.
 
 ## Symptom Routing
 
 | Symptom | Start With |
 | --- | --- |
-| Board will not boot | `collect_startup_evidence(...)`, then crash evidence if fault state is present |
-| HardFault or crash | `collect_crash_evidence(...)`, then `backtrace()` |
-| UART/SPI/I2C/GPIO silent | `svd_load(...)`, `collect_peripheral_evidence(...)`, `svd_read_peripheral(...)` |
+| Board will not boot | Diagnose toolset: `collect_startup_evidence(...)`, then crash evidence if fault state is present |
+| HardFault or crash | Diagnose and probe toolsets: `collect_crash_evidence(...)`, then `backtrace()` |
+| UART/SPI/I2C/GPIO silent | Diagnose and probe toolsets: `svd_load(...)`, `collect_peripheral_evidence(...)`, `svd_read_peripheral(...)` |
 | Interrupt issue | Crash/peripheral evidence, NVIC state, handler symbols |
 | Memory corruption | Crash evidence, repeatable snapshots, stack and symbol checks |
 | Stack overflow | Crash/RTOS evidence and stack context |
-| FreeRTOS stall | `collect_rtos_evidence(...)`, then task context when a task is named |
+| FreeRTOS stall | RTOS toolset: `collect_rtos_evidence(...)`, then task context when a task is named |
 | Clock issue | RCC/clock SVD evidence |
-| Need path proof | Full-only: restart in `full`, then use `run_to_function(...)` or `source_step()` |
+| Need path proof | Probe toolset: use `run_to_function(...)` or `source_step()` |
 | Actuator command ACKed but no motion/output | Prove firmware, bus, peripheral, enable/direction, then physical output |
 
 ## Ordering and Safety
@@ -77,7 +78,7 @@ For a board problem without requested commands:
 - For flash: collect evidence, build, flash, compare ELF to flash, reset/halt, and re-check.
 - RTT memory scanning is bounded by `security.max_rtt_scan_size` or
   `MCUBUDDY_MAX_RTT_SCAN_SIZE`; do not bypass that guard.
-- For actuators, use low-energy `uart_send_with_cleanup(...)` calls with paired stop commands.
+- With the logs toolset, use low-energy `uart_send_with_cleanup(...)` calls with paired stop commands.
 - A `partial` finish is unconfirmed safety evidence; report each failed cleanup.
 
 ## Reporting Template

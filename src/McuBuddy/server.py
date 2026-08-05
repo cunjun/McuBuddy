@@ -15,11 +15,12 @@ def create_server(
     session: SessionState | None = None,
     *,
     tool_profile: str | ToolProfile | None = None,
+    toolsets: list[str] | tuple[str, ...] | frozenset[str] | None = None,
 ) -> FastMCP:
     profile = (
         tool_profile
         if isinstance(tool_profile, ToolProfile)
-        else resolve_tool_profile(tool_profile)
+        else resolve_tool_profile(tool_profile, toolsets=toolsets)
     )
     active_session = session or SessionState()
 

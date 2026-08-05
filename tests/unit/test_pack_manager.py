@@ -77,16 +77,12 @@ def test_install_pack_rejects_oversized_download(tmp_path, monkeypatch) -> None:
     assert list(tmp_path.iterdir()) == []
 
 
-def test_auto_discovery_uses_only_the_exact_verified_managed_pack(
-    tmp_path, monkeypatch
-) -> None:
+def test_auto_discovery_uses_only_the_exact_verified_managed_pack(tmp_path, monkeypatch) -> None:
     payload = b"trusted pack"
     trusted = tmp_path / "Puya.PY32F0xx_DFP.1.2.8.pack"
     trusted.write_bytes(payload)
     (tmp_path / "Puya.PY32F0xx_DFP.9.9.9.pack").write_bytes(b"unmanaged")
-    monkeypatch.setitem(
-        pack_manager._PY32_PACK, "sha256", hashlib.sha256(payload).hexdigest()
-    )
+    monkeypatch.setitem(pack_manager._PY32_PACK, "sha256", hashlib.sha256(payload).hexdigest())
 
     assert discover_pack_paths("PY32F030X8", [tmp_path]) == [str(trusted.resolve())]
 
@@ -95,7 +91,7 @@ def test_auto_discovery_uses_only_the_exact_verified_managed_pack(
 
 
 def test_pack_management_has_agent_tool_parity() -> None:
-    app = create_server(SessionState())
+    app = create_server(SessionState(), toolsets=["experimental"])
 
     assert {"pack_diagnose", "pack_install"} <= set(app._tool_manager._tools)
     diagnose_tool = app._tool_manager.get_tool("pack_diagnose")

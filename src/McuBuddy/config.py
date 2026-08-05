@@ -13,9 +13,23 @@ except ModuleNotFoundError:
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from .tool_profiles import VALID_TOOLSETS
+
 
 class ServerConfig(BaseModel):
     tool_profile: Literal["core", "full"] = "core"
+    toolsets: list[str] = Field(default_factory=list)
+
+    @field_validator("toolsets")
+    @classmethod
+    def _known_toolsets(cls, values: list[str]) -> list[str]:
+        normalized = [value.strip().lower() for value in values if value.strip()]
+        unknown = set(normalized) - VALID_TOOLSETS
+        if unknown:
+            raise ValueError(f"unknown toolsets: {', '.join(sorted(unknown))}")
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("toolsets must be unique")
+        return normalized
 
 
 class ConnectAttempt(BaseModel):
@@ -159,6 +173,7 @@ def load_config(
 
 _ENVIRONMENT_OVERRIDE_PATHS = {
     "MCUBUDDY_TOOL_PROFILE": "server.tool_profile",
+    "MCUBUDDY_TOOLSETS": "server.toolsets",
     "MCUBUDDY_PROBE_BACKEND": "probe.backend",
     "MCUBUDDY_PROBE_TARGET": "probe.target",
     "MCUBUDDY_MAX_READ_SIZE": "memory.max_read_size",
@@ -182,7 +197,14 @@ def apply_environment_overrides(
         value = source.get(name)
         if value in (None, ""):
             continue
-        normalized = value.strip().lower() if name == "MCUBUDDY_TOOL_PROFILE" else value
+        if name == "MCUBUDDY_TOOL_PROFILE":
+            normalized = value.strip().lower()
+        elif name == "MCUBUDDY_TOOLSETS":
+            normalized = json.dumps(
+                [item.strip().lower() for item in value.split(",") if item.strip()]
+            )
+        else:
+            normalized = value
         assignments.append(f"{path}={normalized}")
     return apply_config_overrides(config, parse_cli_overrides(assignments))
 

@@ -18,8 +18,10 @@ and GDB servers as structured tools that AI assistants can call.
 It is designed for firmware development, board bring-up, fault isolation, debugging automation,
 and AI-assisted validation.
 
-McuBuddy starts with a focused `core` MCP tool profile by default. Set
-`MCUBUDDY_TOOL_PROFILE=full` in the MCP server environment to expose the complete expert catalog.
+McuBuddy starts with 19 stable tools in the `default` toolset. Add only the domains a workflow
+needs with `MCUBUDDY_TOOLSETS=probe,diagnose` (available domains: `probe`, `diagnose`,
+`build_flash`, `rtos`, `logs`, and `experimental`). `MCUBUDDY_TOOL_PROFILE=full` remains the
+compatibility option for exposing the complete governed catalog. Startup selection is immutable.
 
 > [!IMPORTANT]
 > Automation does not replace engineering responsibility. Humans remain responsible for goals and

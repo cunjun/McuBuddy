@@ -93,7 +93,7 @@ def test_blocking_session_tool_does_not_block_metadata_query() -> None:
         session = SessionState()
         probe = _ControlledProbe()
         session.probe = probe
-        app = create_server(session)
+        app = create_server(session, toolsets=["probe"])
 
         halt_task = asyncio.create_task(_run_tool(app, "probe_halt"))
         assert await asyncio.to_thread(probe.started.wait, 1)
@@ -115,8 +115,8 @@ def test_different_sessions_can_execute_blocking_tools_in_parallel() -> None:
         second_session = SessionState()
         second_probe = _ControlledProbe()
         second_session.probe = second_probe
-        first_app = create_server(first_session)
-        second_app = create_server(second_session)
+        first_app = create_server(first_session, toolsets=["probe"])
+        second_app = create_server(second_session, toolsets=["probe"])
 
         first_task = asyncio.create_task(_run_tool(first_app, "probe_halt"))
         second_task = asyncio.create_task(_run_tool(second_app, "probe_halt"))
@@ -140,7 +140,7 @@ def test_same_session_serializes_blocking_tools() -> None:
         session = SessionState()
         probe = _BlockingProbe(delay_seconds=0.05)
         session.probe = probe
-        app = create_server(session)
+        app = create_server(session, toolsets=["probe"])
 
         await asyncio.gather(
             _run_tool(app, "probe_halt"),
@@ -156,7 +156,7 @@ def test_execution_boundary_applies_to_other_session_tools() -> None:
         session = SessionState()
         probe = _ControlledProbe()
         session.probe = probe
-        app = create_server(session)
+        app = create_server(session, toolsets=["probe"])
 
         resume_task = asyncio.create_task(_run_tool(app, "probe_resume"))
         assert await asyncio.to_thread(probe.started.wait, 1)
@@ -175,7 +175,7 @@ def test_cancellation_keeps_session_locked_until_worker_finishes() -> None:
         session = SessionState()
         probe = _ControlledProbe()
         session.probe = probe
-        app = create_server(session)
+        app = create_server(session, toolsets=["probe"])
 
         first = asyncio.create_task(_run_tool(app, "probe_halt"))
         assert await asyncio.to_thread(probe.started.wait, 0.5)
@@ -199,7 +199,7 @@ def test_session_lock_is_released_after_worker_error() -> None:
     async def scenario() -> dict:
         session = SessionState()
         session.probe = _FailingProbe()
-        app = create_server(session)
+        app = create_server(session, toolsets=["probe"])
 
         with pytest.raises(ToolError, match="probe failed"):
             await _run_tool(app, "probe_halt")
@@ -219,13 +219,11 @@ def test_backend_switch_waits_for_active_session_operation(monkeypatch) -> None:
         session = SessionState()
         current = _ControlledProbe()
         session.probe = current
-        app = create_server(session)
+        app = create_server(session, toolsets=["probe"])
 
         halt = asyncio.create_task(_run_tool(app, "probe_halt"))
         assert await asyncio.to_thread(current.started.wait, 0.5)
-        configure = asyncio.create_task(
-            _run_tool(app, "configure_probe", {"backend": "probe-rs"})
-        )
+        configure = asyncio.create_task(_run_tool(app, "configure_probe", {"backend": "probe-rs"}))
         await asyncio.sleep(0.05)
         current.release.set()
         await halt

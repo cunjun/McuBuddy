@@ -9,9 +9,9 @@ explicit, and fail-closed.
 The project uses one governed catalog to describe every exposed tool. Startup profiles are presets
 derived from that catalog:
 
-- `core` is the stable default surface for common debugging workflows.
+- `core` is the stable 19-tool default surface for orchestration and session setup.
 - `full` is the explicit expert surface; it is not an automatic export of decorated callbacks.
-- toolsets describe domain ownership and provide the basis for future selective exposure.
+- toolsets describe domain ownership and are selectable only at process startup.
 
 ## Invariants
 
@@ -42,18 +42,18 @@ Catalog metadata is returned by `list_tool_safety()` so clients and maintainers 
 
 ## Toolset Model
 
-The initial catalog classifies tools into these domains:
+The catalog classifies tools into these official startup domains:
 
-- `runtime`: configuration, target discovery, ELF, and session lifecycle;
+- `default`: 19 configuration, discovery, connection, and session lifecycle tools;
 - `probe`: low-level target and probe operations;
-- `diagnostics`: diagnosis routers and structured evidence collection;
+- `diagnose`: diagnosis routers and structured evidence collection;
 - `build_flash`: Keil, GDB server, build, Flash, and verification operations;
 - `rtos`: RTOS inspection and context operations;
 - `logs`: UART, RTT, SWO, and log lifecycle;
-- `peripherals`: SVD-backed peripheral access.
+- `experimental`: preview workflows and compatibility operations.
 
-`core` and `expert` currently identify profile membership. Domain toolsets are metadata in this
-phase; exposing arbitrary toolset combinations is a later compatibility decision.
+`core` always contains `default` and may union explicit toolsets from `MCUBUDDY_TOOLSETS`. `full`
+contains all governed tools for compatibility. Neither selection changes inside a live process.
 
 ## Delivery Phases
 
@@ -67,13 +67,16 @@ phase; exposing arbitrary toolset combinations is a later compatibility decision
 
 This phase deliberately preserves the current 45 `core` tools and 118 `full` tools.
 
-### Phase 2: explicit domain ownership
+### Phase 2: explicit domain ownership — complete
 
 - Move toolset assignment from name-based classification to declarations beside each tool policy.
 - Add catalog validation for owner, deprecation state, and schema version.
 - Generate reference documentation from the catalog.
 - Add startup selectors for supported toolset combinations without permitting live privilege
   escalation inside an existing MCP session.
+
+Phase 2 reduces the default FastMCP schema from 45 to 19 tools while retaining all 118 governed
+tools behind explicit domain selection or the `full` compatibility profile.
 
 ### Phase 3: bounded public surface
 
@@ -102,11 +105,13 @@ If any condition is missing, implement the capability in the domain layer and ke
 
 ## Verification
 
-The Phase 1 implementation is guarded by tests that verify:
+The Phase 1 and Phase 2 implementations are guarded by tests that verify:
 
 - `core` and `full` resolve to explicit immutable sets;
 - unknown future callbacks are denied by both profiles;
 - every registered public tool has safety metadata;
 - catalog and safety registries contain the same public tool names;
 - `list_tool_safety()` reports governance metadata;
-- the existing FastMCP surfaces remain 45 tools for `core` and 118 for `full`.
+- FastMCP registers 19 tools for default `core` and 118 for `full`;
+- every catalog entry belongs to exactly one of the seven official toolsets;
+- generated reference documentation matches the runtime catalog.

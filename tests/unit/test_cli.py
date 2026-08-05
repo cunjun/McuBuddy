@@ -54,12 +54,7 @@ def test_home_set_show_and_clear_json(tmp_path, capsys) -> None:
     shown = json.loads(capsys.readouterr().out)
     assert shown["installation"]["repo_root"] == str(checkout.resolve())
 
-    assert (
-        cli.main(
-            ["home", "clear", "--home", str(tmp_path), "--confirm", "--json"]
-        )
-        == 0
-    )
+    assert cli.main(["home", "clear", "--home", str(tmp_path), "--confirm", "--json"]) == 0
     capsys.readouterr()
 
 
@@ -214,6 +209,12 @@ def test_tool_profile_environment_override_remains_normalized() -> None:
     assert config.server.tool_profile == "full"
 
 
+def test_toolsets_can_be_selected_from_environment() -> None:
+    config = load_config(environ={"MCUBUDDY_TOOLSETS": " diagnose,rtos "})
+
+    assert config.server.toolsets == ["diagnose", "rtos"]
+
+
 def test_parse_cli_overrides_converts_scalar_values() -> None:
     overrides = parse_cli_overrides(
         [
@@ -287,9 +288,10 @@ def test_serve_uses_effective_probe_backend(monkeypatch) -> None:
         def run(self) -> None:
             captured["ran"] = True
 
-    def fake_create_server(session, *, tool_profile):
+    def fake_create_server(session, *, tool_profile, toolsets):
         captured["session"] = session
         captured["tool_profile"] = tool_profile
+        captured["toolsets"] = toolsets
         return _App()
 
     monkeypatch.setattr("McuBuddy.server.create_server", fake_create_server)
@@ -299,6 +301,7 @@ def test_serve_uses_effective_probe_backend(monkeypatch) -> None:
     assert captured["session"].probe is backend
     assert captured["session"].config.probe.backend == "jlink"
     assert captured["tool_profile"] == "core"
+    assert captured["toolsets"] == []
     assert captured["ran"] is True
 
 

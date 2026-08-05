@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Literal
 
-from .tool_safety import TOOL_POLICIES
+from .tool_safety import DEFAULT_TOOL_NAMES, TOOL_POLICIES, TOOLSET_MEMBERS
 
 
 PROFILE_ENV_VAR = "MCUBUDDY_TOOL_PROFILE"
@@ -14,76 +14,8 @@ TOOL_PROFILE_FULL = "full"
 VALID_TOOL_PROFILES = frozenset({TOOL_PROFILE_CORE, TOOL_PROFILE_FULL})
 ToolProfileName = Literal["core", "full"]
 ToolStability = Literal["stable", "preview", "experimental"]
-
-
-CORE_TOOL_NAMES = frozenset(
-    {
-        "doctor",
-        "first_contact",
-        "get_runtime_config",
-        "inspect_project_memory",
-        "write_project_memory",
-        "list_tool_safety",
-        "list_validation_records",
-        "pack_diagnose",
-        "pack_install",
-        "match_chip_name",
-        "get_target_info",
-        "list_connected_probes",
-        "configure_probe",
-        "configure_elf",
-        "elf_load",
-        "svd_load",
-        "probe_connect",
-        "disconnect_all",
-        "finish_debug_session",
-        "probe_halt",
-        "probe_resume",
-        "probe_reset",
-        "read_stopped_context",
-        "backtrace",
-        "collect_crash_evidence",
-        "collect_startup_evidence",
-        "collect_peripheral_evidence",
-        "collect_rtos_evidence",
-        "svd_read_peripheral",
-        "list_rtos_tasks",
-        "rtos_task_context",
-        "read_rtt_log",
-        "configure_log",
-        "log_connect",
-        "uart_send",
-        "uart_send_with_cleanup",
-        "uart_read_bytes",
-        "uart_exchange",
-        "log_tail",
-        "discover_keil_projects",
-        "configure_keil_project",
-        "build_project",
-        "flash_firmware",
-        "flash_image",
-        "compare_elf_to_flash",
-    }
-)
-
-
-def _toolsets_for(tool_name: str, *, default_enabled: bool) -> frozenset[str]:
-    toolsets = {"core" if default_enabled else "expert"}
-    if "rtos" in tool_name:
-        toolsets.add("rtos")
-    elif tool_name.startswith(("diagnose", "collect_")):
-        toolsets.add("diagnostics")
-    elif any(token in tool_name for token in ("build", "flash", "gdb", "keil")):
-        toolsets.add("build_flash")
-    elif any(token in tool_name for token in ("log", "uart", "rtt", "swo")):
-        toolsets.add("logs")
-    elif tool_name.startswith("svd_"):
-        toolsets.add("peripherals")
-    elif tool_name.startswith("probe_"):
-        toolsets.add("probe")
-    else:
-        toolsets.add("runtime")
-    return frozenset(toolsets)
+CORE_TOOL_NAMES = DEFAULT_TOOL_NAMES
+VALID_TOOLSETS = frozenset(TOOLSET_MEMBERS)
 
 
 @dataclass(frozen=True)
@@ -94,6 +26,9 @@ class ToolSpec:
     safety_level: str
     toolsets: frozenset[str]
     stability: ToolStability
+    owner: str
+    schema_version: int
+    deprecated: bool
     default_enabled: bool = False
 
 
@@ -102,9 +37,12 @@ TOOL_CATALOG = MappingProxyType(
         name: ToolSpec(
             name=name,
             safety_level=policy["level"],
-            toolsets=_toolsets_for(name, default_enabled=name in CORE_TOOL_NAMES),
-            stability="stable" if name in CORE_TOOL_NAMES else "preview",
-            default_enabled=name in CORE_TOOL_NAMES,
+            toolsets=policy["toolsets"],
+            stability=policy["stability"],
+            owner=policy["owner"],
+            schema_version=policy["schema_version"],
+            deprecated=policy["deprecated"],
+            default_enabled=policy["default_enabled"],
         )
         for name, policy in TOOL_POLICIES.items()
     }
@@ -119,6 +57,7 @@ FULL_TOOL_NAMES = frozenset(TOOL_CATALOG)
 class ToolProfile:
     name: ToolProfileName
     enabled_tool_names: frozenset[str]
+    selected_toolsets: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         if self.enabled_tool_names is None:
@@ -144,11 +83,30 @@ def resolve_tool_profile(
     explicit: str | None = None,
     *,
     environ: dict[str, str] | None = None,
+    toolsets: list[str] | tuple[str, ...] | frozenset[str] | None = None,
 ) -> ToolProfile:
     value = explicit
     if value is None:
         env = os.environ if environ is None else environ
         value = env.get(PROFILE_ENV_VAR, TOOL_PROFILE_CORE)
     name = _normalize_profile(value)
+    selected = frozenset(item.strip().lower() for item in toolsets or () if item.strip())
+    unknown = selected - VALID_TOOLSETS
+    if unknown:
+        options = ", ".join(sorted(VALID_TOOLSETS))
+        raise ToolProfileError(
+            f"Unknown McuBuddy toolset(s): {', '.join(sorted(unknown))}. "
+            f"Valid values are: {options}."
+        )
+    if name == TOOL_PROFILE_FULL and selected:
+        raise ToolProfileError("The full profile already includes every toolset.")
     enabled = FULL_TOOL_NAMES if name == TOOL_PROFILE_FULL else CORE_TOOL_NAMES
-    return ToolProfile(name=name, enabled_tool_names=enabled)
+    if selected:
+        enabled |= frozenset(
+            tool_name for tool_name, spec in TOOL_CATALOG.items() if spec.toolsets & selected
+        )
+    return ToolProfile(
+        name=name,
+        enabled_tool_names=enabled,
+        selected_toolsets=selected,
+    )

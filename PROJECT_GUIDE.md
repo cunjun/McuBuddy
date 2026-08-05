@@ -513,7 +513,21 @@ Use generic absolute paths and adjust them to the local checkout. Do not copy an
 
 This is the preferred Windows setup because it does not depend on shell activation.
 
-## Enable the full profile
+## Select domain toolsets
+
+The default `core` profile exposes 19 stable orchestration and session tools. Add only the domains
+needed by the workflow:
+
+```json
+"env": {
+  "MCUBUDDY_TOOLSETS": "probe,diagnose"
+}
+```
+
+Valid values are `probe`, `diagnose`, `build_flash`, `rtos`, `logs`, and `experimental`. The
+`default` toolset is always present. Restart the MCP client after changing the selection.
+
+## Enable the full compatibility profile
 
 The default profile is `core`. Add an environment variable only when advanced tools are required:
 
@@ -532,7 +546,8 @@ The default profile is `core`. Add an environment variable only when advanced to
 }
 ```
 
-Restart the MCP client after changing the profile; an already-running server keeps its existing tool set.
+Use `full` for compatibility or exceptional expert workflows; normal installations should select
+domain toolsets. An already-running server always keeps its existing tool set.
 
 ## Using a module launcher on PATH
 

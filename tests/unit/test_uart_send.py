@@ -168,19 +168,17 @@ def test_uart_send_rejects_invalid_input(data: str, data_format: str, message: s
     assert log.payloads == []
 
 
-def test_uart_send_is_a_confirmed_core_mcp_tool() -> None:
+def test_uart_send_is_a_confirmed_logs_mcp_tool() -> None:
     session = SessionState()
     log = _FakeLog()
     session.log = log
-    app = create_server(session)
+    app = create_server(session, toolsets=["logs"])
 
     assert "uart_send" in app._tool_manager._tools
     tool = app._tool_manager.get_tool("uart_send")
 
     blocked = asyncio.run(tool.run({"data": "AA 55", "data_format": "hex"}))
-    sent = asyncio.run(
-        tool.run({"data": "AA 55", "data_format": "hex", "confirm": True})
-    )
+    sent = asyncio.run(tool.run({"data": "AA 55", "data_format": "hex", "confirm": True}))
 
     assert blocked["status"] == "error"
     assert blocked["safety"]["level"] == "state-changing"
@@ -245,11 +243,11 @@ def test_uart_read_and_write_limits_are_bounded() -> None:
     assert log.payloads == []
 
 
-def test_uart_binary_tools_have_core_safety_policies() -> None:
+def test_uart_binary_tools_have_logs_safety_policies() -> None:
     session = SessionState()
     log = _FakeLog(b"\x81")
     session.log = log
-    app = create_server(session)
+    app = create_server(session, toolsets=["logs"])
 
     assert {"uart_read_bytes", "uart_exchange"} <= set(app._tool_manager._tools)
 
@@ -258,10 +256,6 @@ def test_uart_binary_tools_have_core_safety_policies() -> None:
     assert read_result["status"] == "ok"
 
     exchange_tool = app._tool_manager.get_tool("uart_exchange")
-    blocked = asyncio.run(
-        exchange_tool.run(
-            {"data": "01", "data_format": "hex", "timeout_ms": 5}
-        )
-    )
+    blocked = asyncio.run(exchange_tool.run({"data": "01", "data_format": "hex", "timeout_ms": 5}))
     assert blocked["status"] == "error"
     assert blocked["safety"]["level"] == "state-changing"

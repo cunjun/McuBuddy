@@ -28,15 +28,18 @@ domain tools and should not contain hardware logic.
 ### Tool catalog and toolsets
 
 `src/McuBuddy/tool_profiles.py` builds the immutable `TOOL_CATALOG` from explicitly declared tool
-policies. Every entry carries its safety level, stability, default visibility, and toolsets such as
-`probe`, `diagnostics`, `build_flash`, `rtos`, or `logs`.
+policies. Every entry carries its safety level, stability, default visibility, and exactly one of
+the seven startup toolsets: `default`, `probe`, `diagnose`, `build_flash`, `rtos`, `logs`, or
+`experimental`.
 
 Both `core` and `full` are explicit allowlists derived from that catalog. `full` does not mean
 "register every decorated Python function": a new `@mcp.tool()` callback remains hidden until it
 has an explicit policy and therefore enters the governed catalog. Keep this fail-closed invariant
 when adding registration paths.
 
-Use toolsets to describe ownership and future selective exposure; use profiles as startup presets.
+The default `core` preset registers 19 orchestration and session tools. `MCUBUDDY_TOOLSETS` adds
+comma-separated domain toolsets at startup; the registered surface is immutable for that process.
+Use `full` only as a compatibility preset for all 118 governed tools.
 Do not create a new top-level MCP tool for an internal helper or backend-specific implementation.
 A public tool should represent a distinct user intent or safety boundary with a stable schema.
 

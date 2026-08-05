@@ -151,6 +151,9 @@ def test_list_tool_safety_is_machine_readable() -> None:
     assert result["tools"]["erase_flash"]["level"] == "persistent-destructive"
     assert result["tools"]["erase_flash"]["stability"] == "preview"
     assert "build_flash" in result["tools"]["erase_flash"]["toolsets"]
+    assert result["tools"]["erase_flash"]["owner"] == "mcubuddy.build_flash"
+    assert result["tools"]["erase_flash"]["schema_version"] == 1
+    assert result["tools"]["erase_flash"]["deprecated"] is False
     assert result["tools"]["doctor"]["default_enabled"] is True
     assert set(TOOL_SAFETY).issuperset({"doctor", "first_contact", "board_smoke_test"})
 

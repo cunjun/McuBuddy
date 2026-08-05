@@ -15,8 +15,10 @@ FreeRTOS 状态、Flash 操作和 GDB Server 统一成 AI 助手可以调用的�
 
 它适合固件开发、板卡 Bring-up、故障定位、调试自动化和 AI 辅助验证。
 
-McuBuddy 默认启用精简的 `core` MCP 工具配置档；如需完整专家工具集，请在 MCP 服务
-环境中设置 `MCUBUDDY_TOOL_PROFILE=full`。
+McuBuddy 默认只启用 `default` toolset 中的 19 个稳定工具。根据工作流按需通过
+`MCUBUDDY_TOOLSETS=probe,diagnose` 增加领域工具；可选目录为 `probe`、`diagnose`、
+`build_flash`、`rtos`、`logs` 和 `experimental`。`MCUBUDDY_TOOL_PROFILE=full` 仅作为
+暴露全部受治理工具的兼容模式。工具集合在服务启动时确定，运行中不会动态扩大。
 
 > [!IMPORTANT]
 > 自动化不替代工程责任。人仍负责调试目标与验收标准、接线与供电安全、高风险操作授权、
@@ -100,11 +102,29 @@ pip install -e ".[dev]"
   "mcpServers": {
     "McuBuddy": {
       "command": "McuBuddy",
-      "args": []
+      "args": [],
+      "env": {
+        "MCUBUDDY_TOOLSETS": "probe,diagnose"
+      }
     }
   }
 }
 ```
+
+不设置 `MCUBUDDY_TOOLSETS` 时只注册 19 个默认工具。按任务选择目录：
+
+| toolset | 用途 |
+| --- | --- |
+| `default` | 环境检查、配置、连接和会话生命周期，始终启用 |
+| `probe` | 寄存器、内存、断点、单步、ELF/SVD 和底层探针操作 |
+| `diagnose` | HardFault、启动、外设、时钟和内存问题诊断 |
+| `build_flash` | Keil/GDB Server、构建、烧录和校验 |
+| `rtos` | RTOS 任务与上下文检查 |
+| `logs` | UART、RTT、SWO 和日志连接 |
+| `experimental` | 预览、演示和兼容能力 |
+
+修改 toolset 后必须重启 MCP 客户端。确实需要兼容旧版完整工具面时，使用
+`MCUBUDDY_TOOL_PROFILE=full`，不要同时配置 `MCUBUDDY_TOOLSETS`。
 
 Windows 源码环境建议显式配置虚拟环境 Python 和工作目录，详见
 [安装与首次连接](PROJECT_GUIDE_zh.md#3-安装与首次连接)。配置后重新启动 AI 客户端。
@@ -129,7 +149,7 @@ probe_connect(target="py32f030x8")
 read_stopped_context()
 ```
 
-`probe_connect` 和 `read_stopped_context` 均属于默认 `core` 配置档。读取稳定上下文时可能
+`probe_connect` 和 `read_stopped_context` 均属于默认 19 个工具。读取稳定上下文时可能
 暂停目标，因此仍属于执行状态变化。如果设备不能被暂停，应先告诉 AI 只做非侵入式探针和环境检查。
 
 ## 💬 自动化调试示例

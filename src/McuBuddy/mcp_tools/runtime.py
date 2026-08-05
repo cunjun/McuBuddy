@@ -92,6 +92,7 @@ def register_runtime_tools(mcp, session: SessionState) -> None:
         profile = mcp.active_tool_profile
         return _list_tool_safety(
             active_profile=profile.name,
+            selected_toolsets=profile.selected_toolsets,
             enabled_tool_names=profile.enabled_tool_names,
             include_hidden=include_hidden,
         )

@@ -172,8 +172,8 @@ def test_failed_actuator_start_is_not_registered_for_cleanup() -> None:
     assert session.pending_uart_cleanup == []
 
 
-def test_core_server_exposes_safe_uart_and_finish_tools() -> None:
-    app = create_server(SessionState())
+def test_logs_toolset_exposes_safe_uart_and_finish_tools() -> None:
+    app = create_server(SessionState(), toolsets=["logs"])
 
     assert app._tool_manager.get_tool("uart_send_with_cleanup") is not None
     assert app._tool_manager.get_tool("finish_debug_session") is not None
@@ -183,7 +183,7 @@ def test_server_lifespan_finishes_debug_session_on_shutdown() -> None:
     session = SessionState()
     session.probe = _SafeProbe()
     session.log = _SafeLog()
-    app = create_server(session)
+    app = create_server(session, toolsets=["probe"])
 
     async def run_lifespan() -> None:
         async with app._mcp_server.lifespan(app._mcp_server):
@@ -204,7 +204,7 @@ def test_new_execution_change_reopens_a_finished_debug_session() -> None:
     session = SessionState()
     session.probe = _SafeProbe()
     session.log = _SafeLog()
-    app = create_server(session)
+    app = create_server(session, toolsets=["probe"])
 
     async def scenario() -> dict:
         await app._tool_manager.get_tool("finish_debug_session").run({})

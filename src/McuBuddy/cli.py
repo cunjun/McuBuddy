@@ -148,7 +148,11 @@ def _serve(args: argparse.Namespace) -> int:
         jlink_dll_path=config.probe.jlink_dll_path,
         probe_rs_sidecar_path=config.probe.probe_rs_sidecar_path,
     )
-    create_server(session, tool_profile=config.server.tool_profile).run()
+    create_server(
+        session,
+        tool_profile=config.server.tool_profile,
+        toolsets=config.server.toolsets,
+    ).run()
     return 0
 
 
