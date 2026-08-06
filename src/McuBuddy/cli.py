@@ -152,7 +152,7 @@ def _serve(args: argparse.Namespace) -> int:
         session,
         tool_profile=config.server.tool_profile,
         toolsets=config.server.toolsets,
-    ).run()
+    ).run(transport="stdio")
     return 0
 
 

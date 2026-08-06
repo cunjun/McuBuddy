@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from ..backends.probe.base import ProbeCapability, probe_supports
 from ..chip_matcher import match_chip_name as _match_chip_name
 from ..chip_matcher import normalize_backend_name as _normalize_backend_name
@@ -236,6 +238,8 @@ def configure_elf(
     elf_path: str,
 ) -> dict:
     """Set the path to the ELF/AXF file for symbol resolution."""
+    base = _configured_project_directory(session)
+    elf_path = str(_absolute_path(elf_path, base=base))
     if blocked := ensure_file_allowed(runtime_config_for(session), elf_path):
         return blocked
     session.config.elf.path = elf_path
@@ -259,21 +263,34 @@ def configure_build(
     Note: build_project and flash_firmware currently require Keil UV4.
     This tool is only needed if you use those features.
     """
-    if uv4_path is not None:
-        session.config.build.uv4_path = uv4_path
     if project_path is not None:
-        session.config.build.project_path = project_path
+        session.config.build.project_path = str(_absolute_path(project_path))
+    project_dir = _configured_project_directory(session)
+    if uv4_path is not None:
+        session.config.build.uv4_path = str(_absolute_path(uv4_path))
     if target_name is not None:
         session.config.build.target_name = target_name
     if build_log_path is not None:
-        session.config.build.build_log_path = build_log_path
+        session.config.build.build_log_path = str(_absolute_path(build_log_path, base=project_dir))
     if flash_log_path is not None:
-        session.config.build.flash_log_path = flash_log_path
+        session.config.build.flash_log_path = str(_absolute_path(flash_log_path, base=project_dir))
     return {
         "status": "ok",
         "summary": "Updated Keil UV4 build configuration.",
         "build": session.config.build.model_dump(),
     }
+
+
+def _configured_project_directory(session: SessionState) -> Path | None:
+    project_path = session.config.build.project_path
+    return Path(project_path).parent if project_path else None
+
+
+def _absolute_path(path: str, *, base: Path | None = None) -> Path:
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute() and base is not None:
+        candidate = base / candidate
+    return candidate.resolve()
 
 
 def connect_with_config(session: SessionState) -> dict:

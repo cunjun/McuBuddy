@@ -23,7 +23,7 @@ _XML_FIELDS = {
 
 def discover_keil_projects(root: str, max_depth: int = 6) -> dict:
     """Discover Keil MDK projects and likely firmware outputs under a directory."""
-    root_path = Path(root).expanduser()
+    root_path = Path(root).expanduser().resolve()
     if not root_path.exists():
         return {
             "status": "error",
@@ -73,6 +73,7 @@ def configure_keil_project(
         selected = projects[0]
         project_path = selected["project_path"]
     else:
+        project_path = str(Path(project_path).expanduser().resolve())
         selected = _describe_keil_project(Path(project_path))
         discovery = None
 

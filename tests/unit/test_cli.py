@@ -25,6 +25,25 @@ def test_help_lists_management_commands(capsys) -> None:
     assert "home" in output
 
 
+def test_serve_uses_stdio_transport(monkeypatch) -> None:
+    calls = []
+
+    class _Server:
+        def run(self, **kwargs):
+            calls.append(kwargs)
+
+    monkeypatch.setattr("McuBuddy.server.create_server", lambda *args, **kwargs: _Server())
+    monkeypatch.setattr(cli, "create_probe_backend", lambda *args, **kwargs: object())
+
+    assert cli.main(["serve"]) == 0
+    assert calls == [{"transport": "stdio"}]
+
+
+def test_cli_rejects_network_transport_options() -> None:
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(["serve", "--transport", "http"])
+
+
 def test_home_set_show_and_clear_json(tmp_path, capsys) -> None:
     checkout = tmp_path / "McuBuddy"
     (checkout / "src" / "McuBuddy").mkdir(parents=True)
@@ -271,13 +290,13 @@ def test_no_argument_startup_keeps_legacy_serve_behavior(monkeypatch) -> None:
     calls = []
 
     class _App:
-        def run(self) -> None:
-            calls.append("run")
+        def run(self, **kwargs) -> None:
+            calls.append(kwargs)
 
     monkeypatch.setattr("McuBuddy.server.create_server", lambda *args, **kwargs: _App())
 
     assert cli.main([]) == 0
-    assert calls == ["run"]
+    assert calls == [{"transport": "stdio"}]
 
 
 def test_serve_uses_effective_probe_backend(monkeypatch) -> None:
@@ -285,8 +304,8 @@ def test_serve_uses_effective_probe_backend(monkeypatch) -> None:
     backend = object()
 
     class _App:
-        def run(self) -> None:
-            captured["ran"] = True
+        def run(self, **kwargs) -> None:
+            captured["run_kwargs"] = kwargs
 
     def fake_create_server(session, *, tool_profile, toolsets):
         captured["session"] = session
@@ -302,7 +321,7 @@ def test_serve_uses_effective_probe_backend(monkeypatch) -> None:
     assert captured["session"].config.probe.backend == "jlink"
     assert captured["tool_profile"] == "core"
     assert captured["toolsets"] == []
-    assert captured["ran"] is True
+    assert captured["run_kwargs"] == {"transport": "stdio"}
 
 
 def test_doctor_config_error_keeps_json_schema_version(tmp_path, capsys) -> None:

@@ -57,6 +57,19 @@ must remain usable without it.
 <!-- guide-section:quickstart -->
 ## 3. Installation and First Connection
 
+For normal use, install the released package once and reuse it from any local firmware project:
+
+```powershell
+python -m pip install "McuBuddy @ git+https://github.com/cunjun/McuBuddy.git"
+McuBuddy doctor --json
+```
+
+The firmware project does not contain McuBuddy. The MCP client starts a dedicated local `stdio`
+process, and each process owns one independent `SessionState`. There is no MCP HTTP/SSE/WebSocket
+transport, shared backend service, remote hardware agent, or automatic updater. Target projects,
+Keil, symbols, probes, and serial ports must be visible on the same machine. Update manually by
+reinstalling from `https://github.com/cunjun/McuBuddy`.
+
 Development setup:
 
 ```powershell

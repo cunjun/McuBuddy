@@ -71,7 +71,7 @@ class ElfManager:
         self._cfi_pcs: list[int] = []
 
     def load(self, path: str) -> dict[str, Any]:
-        file_path = Path(path)
+        file_path = Path(path).expanduser().resolve()
         with file_path.open("rb") as handle:
             elf = ELFFile(handle)
             self._func_symbols, self._all_symbols = self._load_symbols(elf)

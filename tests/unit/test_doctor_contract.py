@@ -24,6 +24,8 @@ def test_doctor_report_has_versioned_json_contract(monkeypatch) -> None:
         and check["status"] in {"ok", "warning", "error"}
         for check in report["checks"]
     )
+    installation = next(check for check in report["checks"] if check["name"] == "installation")
+    assert "source_checkout" in installation
 
 
 def test_doctor_does_not_warn_about_probe_rs_when_pyocd_is_selected(monkeypatch) -> None:

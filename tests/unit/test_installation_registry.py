@@ -5,6 +5,7 @@ import json
 from McuBuddy.installation_registry import (
     clear_installation_home,
     get_installation_home,
+    inspect_runtime_installation,
     set_installation_home,
 )
 
@@ -80,3 +81,18 @@ def test_clear_installation_home_removes_saved_default(tmp_path) -> None:
 
     assert cleared["status"] == "ok"
     assert get_installation_home(home=tmp_path)["status"] == "not_configured"
+
+
+def test_runtime_installation_does_not_require_source_checkout(monkeypatch, tmp_path) -> None:
+    class _Distribution:
+        version = "9.9.9"
+
+    monkeypatch.setattr("McuBuddy.installation_registry.metadata.distribution", lambda _: _Distribution())
+    monkeypatch.setattr("McuBuddy.installation_registry._find_checkout_root", lambda _: None)
+    monkeypatch.setattr("McuBuddy.installation_registry.shutil.which", lambda _: str(tmp_path / "McuBuddy.exe"))
+
+    report = inspect_runtime_installation()
+
+    assert report["status"] == "ok"
+    assert report["distribution_version"] == "9.9.9"
+    assert report["source_checkout"] is None
