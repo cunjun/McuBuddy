@@ -131,6 +131,21 @@ def test_readmes_must_share_critical_contract_tokens(tmp_path: Path) -> None:
     )
 
 
+def test_current_docs_define_local_stdio_installation_contract() -> None:
+    root = Path(__file__).parents[2]
+    english = (root / "README.md").read_text(encoding="utf-8")
+    chinese = (root / "README_zh.md").read_text(encoding="utf-8")
+    architecture = (root / "docs" / "architecture.md").read_text(encoding="utf-8")
+
+    for text in (english, chinese):
+        assert "stdio" in text
+        assert "https://github.com/cunjun/McuBuddy" in text
+        assert "HTTP" in text and "WebSocket" in text
+    assert "automatic" in english.lower()
+    assert "自动" in chinese
+    assert "separate process" in architecture
+
+
 def test_project_guides_must_have_matching_section_ids(tmp_path: Path) -> None:
     repo = _minimal_repo(tmp_path)
     path = repo / "PROJECT_GUIDE_zh.md"

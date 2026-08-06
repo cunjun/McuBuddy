@@ -120,6 +120,23 @@ def test_keil_build_runtime_creates_configured_log_parent(tmp_path: Path) -> Non
     assert configured_log.parent.exists()
 
 
+def test_configure_build_resolves_logs_against_explicit_project(tmp_path, monkeypatch) -> None:
+    from McuBuddy.tools.configuration import configure_build
+
+    project = tmp_path / "firmware" / "Demo.uvprojx"
+    project.parent.mkdir()
+    project.write_text("", encoding="utf-8")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    session = SessionState()
+
+    configure_build(session, project_path=str(project), build_log_path="logs/build.log")
+
+    assert session.config.build.project_path == str(project.resolve())
+    assert session.config.build.build_log_path == str(project.parent / "logs" / "build.log")
+
+
 def test_keil_build_rejects_stale_success_log_when_command_fails(
     tmp_path: Path,
     monkeypatch,

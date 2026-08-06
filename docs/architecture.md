@@ -11,6 +11,11 @@
 `src/McuBuddy/server.py` should stay small. It owns app creation and process startup only.
 Do not add tool implementations or long registration blocks there.
 
+McuBuddy exposes MCP only over local `stdio`. Each MCP client connection starts a separate process;
+that process constructs its own `SessionState`, execution lock, hardware backends, and cleanup
+lifecycle. Do not add an MCP HTTP/SSE/WebSocket listener, cross-process session leasing, or a shared
+daemon. Keil, firmware files, probes, and serial ports are accessed directly by the local process.
+
 ## MCP Tool Registration
 
 `src/McuBuddy/mcp_tools/` contains one registration module per user-facing domain:

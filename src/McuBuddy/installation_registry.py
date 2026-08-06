@@ -2,10 +2,38 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import sys
+from importlib import metadata
 from pathlib import Path
 from typing import Any
 
 REGISTRY_SCHEMA_VERSION = "1.0"
+
+
+def inspect_runtime_installation() -> dict[str, Any]:
+    """Describe the installed distribution independently of any source checkout."""
+    try:
+        distribution = metadata.distribution("McuBuddy")
+    except metadata.PackageNotFoundError:
+        distribution = None
+
+    executable = shutil.which("McuBuddy")
+    package_root = Path(__file__).resolve().parent
+    checkout_root = _find_checkout_root(package_root)
+    return {
+        "status": "ok" if distribution is not None else "warning",
+        "summary": (
+            f"McuBuddy {distribution.version} is installed."
+            if distribution is not None
+            else "McuBuddy is importable, but installed distribution metadata was not found."
+        ),
+        "distribution_version": distribution.version if distribution is not None else None,
+        "package_root": str(package_root),
+        "python_executable": sys.executable,
+        "command_executable": executable,
+        "source_checkout": str(checkout_root) if checkout_root is not None else None,
+    }
 
 
 def get_installation_home(*, home: str | Path | None = None) -> dict[str, Any]:
@@ -148,3 +176,12 @@ def _inspect_checkout(root: Path) -> dict[str, str | None] | None:
         "repo_root": str(root),
         "executable": str(executable) if executable is not None else None,
     }
+
+
+def _find_checkout_root(package_root: Path) -> Path | None:
+    for candidate in package_root.parents:
+        if (candidate / "pyproject.toml").is_file() and (
+            candidate / "src" / "McuBuddy"
+        ).is_dir():
+            return candidate
+    return None

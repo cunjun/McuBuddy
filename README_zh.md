@@ -80,8 +80,16 @@ Keil MDK（通过 `UV4.exe`）、pyOCD、J-Link 或其他内部后端。
 ### 2. 安装
 
 ```bash
-pip install McuBuddy
+pip install "McuBuddy @ git+https://github.com/cunjun/McuBuddy.git"
 ```
+
+这会在本机安装一次 McuBuddy，供所有本地固件项目使用；无需在每个目标项目中 clone、复制或
+vendor McuBuddy。McuBuddy 是纯本地 MCP 后端：客户端为每个连接启动一个独立的 `stdio`
+进程，McuBuddy 不提供 HTTP、SSE、WebSocket 或其他 MCP 网络监听。
+
+目标工程、Keil、ELF/SVD、调试探针和串口必须对运行 McuBuddy 的本机直接可见。需要更新时，
+由用户从官方仓库 `https://github.com/cunjun/McuBuddy` 主动重新安装；McuBuddy 不会自动检查、
+下载或安装更新。
 
 使用 J-Link Python 后端时安装可选依赖：
 

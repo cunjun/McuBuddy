@@ -13,6 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10
 from . import __version__
 from .backends.probe.sidecar_client import resolve_sidecar_path
 from .config import RuntimeConfig, config_for_display
+from .installation_registry import inspect_runtime_installation
 from .session import SessionState, create_probe_backend
 
 DOCTOR_SCHEMA_VERSION = "1.0"
@@ -20,6 +21,7 @@ DOCTOR_SCHEMA_VERSION = "1.0"
 
 def build_doctor_report(config: RuntimeConfig) -> dict[str, Any]:
     checks = [
+        {"name": "installation", **inspect_runtime_installation()},
         _check_version(),
         _check_python(),
         _check_import("mcp", "MCP package"),

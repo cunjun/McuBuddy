@@ -10,6 +10,20 @@
 <!-- guide-section:positioning -->
 <!-- guide-section:boundaries -->
 <!-- guide-section:quickstart -->
+## 本地安装与连接契约
+
+正常使用时，只需在本机安装一次发行包，然后可服务任意本地固件工程：
+
+```powershell
+python -m pip install "McuBuddy @ git+https://github.com/cunjun/McuBuddy.git"
+McuBuddy doctor --json
+```
+
+固件工程无需包含、复制或 clone McuBuddy。MCP 客户端为每次连接启动独立的本地 `stdio`
+进程，每个进程拥有独立的 `SessionState`。项目不提供 MCP HTTP/SSE/WebSocket 传输、共享
+后台服务、远程硬件代理或自动更新器。目标工程、Keil、符号文件、探针和串口必须对运行
+McuBuddy 的同一台机器可见。更新时由用户从 `https://github.com/cunjun/McuBuddy` 主动重新安装。
+
 <!-- guide-section:architecture -->
 <!-- guide-section:repository -->
 <!-- guide-section:workflows -->

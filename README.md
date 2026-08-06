@@ -86,8 +86,18 @@ Keil build and download features require Windows with Keil MDK installed. McuBud
 ### 2. Installation
 
 ```bash
-pip install McuBuddy
+pip install "McuBuddy @ git+https://github.com/cunjun/McuBuddy.git"
 ```
+
+This installs McuBuddy once for all local firmware projects. Do not clone or copy the McuBuddy
+repository into each target project. McuBuddy is a local-only MCP backend: the client starts one
+`stdio` process per connection, and McuBuddy does not expose HTTP, SSE, WebSocket, or another MCP
+network listener.
+
+The target project, Keil installation, ELF/SVD files, probe, and serial port must be directly
+visible to the machine running McuBuddy. To update, reinstall from the official repository at
+`https://github.com/cunjun/McuBuddy`; McuBuddy never checks for, downloads, or installs updates
+automatically.
 
 Install the optional dependency when using the J-Link Python backend:
 
