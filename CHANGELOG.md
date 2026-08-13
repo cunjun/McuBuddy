@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.1 - 2026-08-13
+
+### Added
+- Added persistent Codex MCP setup, status, repair, and removal commands.
+- Bundled the mcubuddy Skill in the Python wheel for installations without a source checkout.
+- Added runtime and doctor reporting for the active tool surface and Codex registration.
+
+### Changed
+- Made explicit McuBuddy requests proactively repair missing Codex MCP registration.
+- Documented the `uv tool install McuBuddy` setup path for users who do not clone the repository.
+
+### Fixed
+- Stepped over active breakpoints before continuing, including conditional-breakpoint skips.
+- Prevented run-to-function and run-to-source timeouts or unrelated stops from being reported as
+  successful target hits.
+
 ## 0.6.0 - 2026-08-05
 
 ### Added

@@ -6,6 +6,10 @@ from McuBuddy.doctor import DOCTOR_SCHEMA_VERSION, build_doctor_report
 
 def test_doctor_report_has_versioned_json_contract(monkeypatch) -> None:
     monkeypatch.setattr(
+        "McuBuddy.doctor._check_codex_mcp_registration",
+        lambda: {"name": "codex-mcp-registration", "status": "ok", "summary": "registered"},
+    )
+    monkeypatch.setattr(
         "McuBuddy.doctor._check_probes",
         lambda config: {
             "name": "probe-discovery",
@@ -26,6 +30,7 @@ def test_doctor_report_has_versioned_json_contract(monkeypatch) -> None:
     )
     installation = next(check for check in report["checks"] if check["name"] == "installation")
     assert "source_checkout" in installation
+    assert any(check["name"] == "codex-mcp-registration" for check in report["checks"])
 
 
 def test_doctor_does_not_warn_about_probe_rs_when_pyocd_is_selected(monkeypatch) -> None:

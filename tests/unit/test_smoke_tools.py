@@ -121,3 +121,6 @@ def test_doctor_reports_environment_and_probe_preflight() -> None:
     assert kinds[-3:] == ["probe_discovery", "target_info", "configuration"]
     assert "first_contact" in result["next_tools"]
     assert "board_smoke_test" in result["next_tools"]
+    assert result["tool_surface"]["default_tool_count"] == 19
+    assert result["tool_surface"]["selected_toolsets"] == []
+    assert "MCUBUDDY_TOOLSETS=probe" in result["tool_surface"]["debug_tool_hint"]

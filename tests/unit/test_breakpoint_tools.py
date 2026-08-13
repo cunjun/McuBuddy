@@ -69,6 +69,13 @@ class _FakeBreakpointProbe:
             "shcsr": 0x0,
         }
 
+    @property
+    def breakpoint_addresses(self) -> frozenset[int]:
+        return frozenset(self.breakpoints)
+
+    def step(self) -> dict:
+        return {"status": "ok", "pc": "0x8001236"}
+
 
 class _FakeElf:
     is_loaded = True
@@ -126,6 +133,41 @@ def test_continue_target_returns_symbol_context() -> None:
     assert result["status"] == "ok"
     assert result["stop_reason"] == "breakpoint_hit"
     assert result["symbol"] == "sensor_init"
+
+
+def test_continue_target_steps_over_breakpoint_at_current_pc_before_resuming() -> None:
+    session = SessionState()
+    probe = _FakeBreakpointProbe()
+    probe.breakpoints.add(0x08001234)
+    calls: list[tuple[str, int | None]] = []
+    probe.clear_breakpoint = lambda address: (
+        calls.append(("clear", address)),
+        probe.breakpoints.discard(address),
+        {"status": "ok"},
+    )[-1]
+    probe.step = lambda: (calls.append(("step", None)), {"status": "ok"})[-1]
+    probe.set_breakpoint = lambda address: (
+        calls.append(("set", address)),
+        probe.breakpoints.add(address),
+        {"status": "ok"},
+    )[-1]
+    original_continue = probe.continue_target
+    probe.continue_target = lambda **kwargs: (
+        calls.append(("continue", None)),
+        original_continue(**kwargs),
+    )[-1]
+    session.services.probe = probe
+    session.services.elf = _FakeElf()
+
+    continue_target(session)
+
+    assert calls[:4] == [
+        ("clear", 0x08001234),
+        ("step", None),
+        ("set", 0x08001234),
+        ("continue", None),
+    ]
+    assert 0x08001234 in probe.breakpoints
 
 
 def test_read_stopped_context_includes_symbols_and_logs() -> None:

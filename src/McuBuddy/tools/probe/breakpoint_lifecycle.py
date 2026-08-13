@@ -23,3 +23,21 @@ def temporary_breakpoint(probe: object, address: int) -> Iterator[bool]:
     finally:
         if created:
             probe.clear_breakpoint(normalized)
+
+
+def step_over_breakpoint_at_current_pc(probe: object) -> int | None:
+    """Advance past an active breakpoint without changing its ownership."""
+    breakpoint_addresses = _breakpoint_addresses(probe)
+    if not breakpoint_addresses:
+        return None
+    registers = probe.read_core_registers()
+    pc = int(registers["pc"]) & ~1
+    if pc not in breakpoint_addresses:
+        return None
+
+    probe.clear_breakpoint(pc)
+    try:
+        probe.step()
+    finally:
+        probe.set_breakpoint(pc)
+    return pc

@@ -106,6 +106,9 @@ class _FakeProbeSequentialRegister:
     def read_memory(self, address, size):
         return b"\x00" * size
 
+    def step(self):
+        return {"status": "ok"}
+
 
 class _FakeSession:
     def __init__(self, probe, elf=None):
@@ -250,6 +253,38 @@ def test_continue_target_skips_then_halts():
     result = continue_target(session)
     assert result["status"] == "ok"
     assert result.get("condition_skip_count") == 2
+
+
+def test_continue_target_steps_over_conditional_breakpoint_between_skipped_hits():
+    bp_addr = 0x08001234
+    probe = _FakeProbeSequentialRegister(
+        halt_pc=bp_addr,
+        register_sequence=[
+            {"pc": bp_addr, "r0": 3},  # pre-resume breakpoint check
+            {"pc": bp_addr, "r0": 3},
+            {"pc": bp_addr, "r0": 5},
+        ],
+    )
+    probe._breakpoints.add(bp_addr)
+    calls: list[str] = []
+    original_clear = probe.clear_breakpoint
+    original_set = probe.set_breakpoint
+    probe.clear_breakpoint = lambda address: (calls.append("clear"), original_clear(address))[-1]
+    probe.step = lambda: (calls.append("step"), {"status": "ok"})[-1]
+    probe.set_breakpoint = lambda address: (calls.append("set"), original_set(address))[-1]
+    session = _FakeSession(probe)
+    session.artifacts.conditional_breakpoints[bp_addr] = {
+        "condition_symbol": None,
+        "condition_register": "r0",
+        "condition_op": "eq",
+        "condition_value": 5,
+    }
+
+    result = continue_target(session)
+
+    assert result["status"] == "ok"
+    assert calls == ["clear", "step", "set", "clear", "step", "set"]
+    assert bp_addr in probe._breakpoints
 
 
 def test_continue_target_halts_immediately_when_condition_met():

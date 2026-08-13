@@ -13,6 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10
 from . import __version__
 from .backends.probe.sidecar_client import resolve_sidecar_path
 from .config import RuntimeConfig, config_for_display
+from .codex_integration import inspect_codex_integration
 from .installation_registry import inspect_runtime_installation
 from .session import SessionState, create_probe_backend
 
@@ -30,6 +31,7 @@ def build_doctor_report(config: RuntimeConfig) -> dict[str, Any]:
         _check_sidecar(config),
         _check_config(config),
         _check_skill_installation(),
+        _check_codex_mcp_registration(),
         _check_probes(config),
     ]
     status = _overall_status(checks)
@@ -172,6 +174,22 @@ def _check_skill_installation() -> dict[str, Any]:
         "status": "warning",
         "summary": "mcubuddy skill is not installed in the default Codex skill directory.",
         "path": str(skill_path),
+    }
+
+
+def _check_codex_mcp_registration() -> dict[str, Any]:
+    result = inspect_codex_integration()
+    registered = bool(result.get("registered"))
+    return {
+        "name": "codex-mcp-registration",
+        "status": "ok" if registered else "warning",
+        "summary": (
+            "McuBuddy MCP is persistently registered with Codex."
+            if registered
+            else "McuBuddy MCP is not registered; run `McuBuddy setup codex --confirm`."
+        ),
+        "registered": registered,
+        "details": result,
     }
 
 

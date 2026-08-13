@@ -11,29 +11,33 @@ Prefer reads, separate evidence from hypotheses, and verify changes. Start in `c
 
 ## Local McuBuddy Discovery
 
-With MCP tools available, never ask for the checkout. Otherwise run `McuBuddy home show --json`.
-If unavailable, validate `pyproject.toml`, `src/McuBuddy`, and `.venv`; after confirmation run
-`McuBuddy home set <checkout> --confirm --json`. Store paths in `.mcubuddy/installations.json`.
+With MCP tools available, never ask for the checkout. Otherwise use `McuBuddy home show --json`;
+validate a missing checkout, then after confirmation run
+`McuBuddy home set <checkout> --confirm --json`. Never embed local paths in docs.
 Never write a local checkout path into `SKILL.md` or repository documentation.
+
+## Codex MCP Recovery
+
+If the user names McuBuddy but its MCP tools are absent, do not stop. Run
+`McuBuddy setup status --json`, then if needed
+`McuBuddy setup codex --repair --confirm --json`. Explain that registration persists but Codex must
+reload. After reload, use MCP directly unless startup fails.
 
 ## Project Reference
 
-This Skill is deliberately self-contained and does not duplicate the repository documentation.
-When the source checkout is available, use its `PROJECT_GUIDE.md` for the project overview,
-`docs/tool-reference.md` for exact signatures, and `docs/support-matrix.md` for verified support.
+Use `PROJECT_GUIDE.md` for architecture, `docs/tool-reference.md` for signatures, and
+`docs/support-matrix.md` for verified support.
 
 ## Target Project Memory
 
-Use the confirmed firmware root, never the Skill location;
-never write another firmware project's memory into the McuBuddy repository.
-Call `inspect_project_memory(...)` before `get_runtime_config()`. Verify remembered hardware.
-Write only after confirming root and content.
+Use the confirmed firmware root, never the Skill location; never write another firmware project's memory into the McuBuddy repository. Call
+`inspect_project_memory(...)` before `get_runtime_config()`. Verify remembered hardware; write only
+after confirming root and content.
 
 ## Known Project Resume
 
-Reuse memory and config. Do not run `first_contact()` except for first setup, changed hardware,
-missing config, recovery, or requested preflight; use `doctor()` there too. A new Codex task alone
-is not first contact.
+Reuse memory and config. Do not run `first_contact()` except for setup, changed hardware, missing
+config, recovery, or requested preflight; use `doctor()` there too.
 
 ## Default Flow
 
@@ -62,9 +66,7 @@ For a board problem without requested commands:
 | Board will not boot | Diagnose toolset: `collect_startup_evidence(...)`, then crash evidence if fault state is present |
 | HardFault or crash | Diagnose and probe toolsets: `collect_crash_evidence(...)`, then `backtrace()` |
 | UART/SPI/I2C/GPIO silent | Diagnose and probe toolsets: `svd_load(...)`, `collect_peripheral_evidence(...)`, `svd_read_peripheral(...)` |
-| Interrupt issue | Crash/peripheral evidence, NVIC state, handler symbols |
-| Memory corruption | Crash evidence, repeatable snapshots, stack and symbol checks |
-| Stack overflow | Crash/RTOS evidence and stack context |
+| Interrupt/memory/stack issue | Matching crash, peripheral, stack, symbol, or RTOS evidence |
 | FreeRTOS stall | RTOS toolset: `collect_rtos_evidence(...)`, then task context when a task is named |
 | Clock issue | RCC/clock SVD evidence |
 | Need path proof | Probe toolset: use `run_to_function(...)` or `source_step()` |
@@ -83,18 +85,4 @@ For a board problem without requested commands:
 
 ## Reporting Template
 
-Report results in this order:
-
-```text
-Evidence:
-- ...
-
-Interpretation:
-- ...
-
-Missing/uncertain evidence:
-- ...
-
-Next safe check and impact:
-- ...
-```
+Report evidence, interpretation, missing evidence, then the next safe check and impact.

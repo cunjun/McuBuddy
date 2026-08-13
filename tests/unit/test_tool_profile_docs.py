@@ -51,6 +51,22 @@ def test_project_guides_document_core_and_explicit_toolsets() -> None:
         assert "MCUBUDDY_TOOLSETS" in guide
 
 
+def test_skill_recovers_missing_codex_mcp_registration_proactively() -> None:
+    skill = (ROOT / "skills" / "mcubuddy" / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "McuBuddy setup status --json" in skill
+    assert "McuBuddy setup codex --repair --confirm --json" in skill
+    assert "do not stop" in skill
+
+
+def test_project_guide_documents_persistent_codex_setup() -> None:
+    guide = (ROOT / "PROJECT_GUIDE.md").read_text(encoding="utf-8")
+
+    assert "setup codex --confirm --json" in guide
+    assert "setup codex --repair --confirm --json" in guide
+    assert "Registration persists across restarts" in guide
+
+
 def test_documented_core_tools_match_code_allowlist() -> None:
     reference = (ROOT / "docs" / "tool-reference.md").read_text(encoding="utf-8")
 
