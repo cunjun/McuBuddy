@@ -1,30 +1,30 @@
-# McuBuddy v0.6.0
+# McuBuddy v0.6.1
 
-McuBuddy v0.6.0 strengthens the project as an evidence-first MCU debugging runtime. The release
-narrows the default MCP surface, expands real-hardware backend coverage, and makes debugging
-sessions safer to start, operate, and finish.
+McuBuddy v0.6.1 makes Codex integration persistent and self-repairing while tightening breakpoint
+navigation semantics for real hardware debugging. Installed releases now carry the mcubuddy Skill,
+so normal users can configure Codex without cloning the source repository.
 
 ## Highlights
 
-- Unified MCP tool registration around a generated catalog and explicit domain toolsets.
-- Added project discovery and persistent project memory for repeat debugging sessions.
-- Added probe-rs ESP32 Flash and RTT workflows alongside the existing pyOCD and J-Link backends.
-- Added structured CLI, doctor, configuration, package-management, and evidence-collection flows.
-- Improved session serialization and cleanup for probes, logs, GDB servers, and worker threads.
-- Tightened capability reporting and diagnosis contracts so unsupported or incomplete hardware
-  evidence is not presented as a successful result.
-- Consolidated the English and Chinese documentation and the bundled Codex skill.
+- Added `McuBuddy setup codex/status/remove` for persistent Codex MCP registration, repair, and
+  verification with `probe,diagnose` enabled by default.
+- Bundled the mcubuddy Skill inside the wheel so `uv tool install McuBuddy` no longer requires a Git
+  checkout for Codex setup.
+- Made the Skill proactively repair missing MCP registration when the user explicitly requests
+  McuBuddy.
+- Fixed continue-after-breakpoint behavior by stepping over the active breakpoint while preserving
+  its ownership and restoring it safely.
+- Made run-to-function and run-to-source distinguish target hits, timeouts, errors, and unrelated
+  stops instead of reporting every stop as success.
+- Added tool-surface guidance to runtime and doctor reports.
 
 ## Upgrade Notes
 
-The default MCP surface is intentionally constrained. Enable only the additional domains needed
-for a debugging workflow with `MCUBUDDY_TOOLSETS`. Existing installations should reinstall the
-package and restart their MCP client after upgrading so the package metadata and tool catalog are
-loaded from the same version.
+Upgrade the installed package, run `McuBuddy setup codex --repair --confirm --json`, and restart
+Codex so new tasks load the repaired MCP registration and bundled Skill.
 
 ## Validation
 
-This release includes unit and integration coverage for tool registration, session lifecycle,
-probe backends, Flash, RTT/UART logging, project memory, configuration, diagnostics, documentation,
-and package metadata. Hardware capability claims remain scoped to the validation records and
-support matrix shipped in the repository.
+The complete unit and integration suite passes, the wheel contains the bundled Skill resources,
+and documentation, Skill, Ruff, and repository-diff validation all pass. No additional real-board
+validation is claimed for this release.

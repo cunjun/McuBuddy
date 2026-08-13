@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from ...session import SessionState
 from ...tool_safety import require_tool_confirmation
+from .breakpoint_lifecycle import step_over_breakpoint_at_current_pc
 from .conditions import _OPS, _evaluate_condition
 from .source import _resolve_breakpoint_address
 
@@ -103,6 +104,7 @@ def continue_target(
     poll_interval_ms: int = 50,
     max_condition_loops: int = 1000,
 ) -> dict:
+    step_over_breakpoint_at_current_pc(session.services.probe)
     for loop in range(max_condition_loops):
         result = session.services.probe.continue_target(
             timeout_seconds=timeout_seconds,
@@ -119,6 +121,7 @@ def continue_target(
             cond = session.artifacts.conditional_breakpoints.get(pc)
             if cond and not _evaluate_condition(session, cond):
                 result["_condition_skipped"] = True
+                step_over_breakpoint_at_current_pc(session.services.probe)
                 continue
 
         if loop > 0:

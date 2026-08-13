@@ -11,6 +11,7 @@ from .config import (
     parse_cli_overrides,
     validate_config_file,
 )
+from .codex_integration import inspect_codex_integration, remove_codex, setup_codex
 from .doctor import build_doctor_error_report, build_doctor_report
 from .installation_registry import (
     clear_installation_home,
@@ -41,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
             return _packs(args)
         if command == "home":
             return _home(args)
+        if command == "setup":
+            return _setup(args)
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
     parser.error(f"unknown command: {command}")
@@ -116,6 +119,24 @@ def build_parser() -> argparse.ArgumentParser:
     home_clear.add_argument("--home", help="Home directory containing the .mcubuddy registry.")
     home_clear.add_argument("--confirm", action="store_true", help="Confirm the user-level write.")
     home_clear.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+
+    setup = subparsers.add_parser("setup", help="Configure persistent assistant integrations.")
+    setup_sub = setup.add_subparsers(dest="setup_command", required=True)
+    setup_codex_parser = setup_sub.add_parser("codex", help="Install or repair Codex integration.")
+    setup_codex_parser.add_argument("--repo-root", help="McuBuddy source checkout to register.")
+    setup_codex_parser.add_argument("--home", help="Home directory used for Skill installation.")
+    setup_codex_parser.add_argument(
+        "--toolsets", default="probe,diagnose", help="Comma-separated startup toolsets."
+    )
+    setup_codex_parser.add_argument("--repair", action="store_true")
+    setup_codex_parser.add_argument("--confirm", action="store_true")
+    setup_codex_parser.add_argument("--json", action="store_true")
+    setup_status = setup_sub.add_parser("status", help="Inspect Codex MCP registration.")
+    setup_status.add_argument("--repo-root")
+    setup_status.add_argument("--json", action="store_true")
+    setup_remove = setup_sub.add_parser("remove", help="Remove Codex MCP registration.")
+    setup_remove.add_argument("--confirm", action="store_true")
+    setup_remove.add_argument("--json", action="store_true")
 
     return parser
 
@@ -255,6 +276,25 @@ def _home(args: argparse.Namespace) -> int:
         report = clear_installation_home(home=args.home, confirm=args.confirm)
     else:
         raise ValueError(f"Unknown home command: {args.home_command}")
+    _print_report(report, as_json=args.json)
+    return 0 if report["status"] in ("ok", "not_configured") else 1
+
+
+def _setup(args: argparse.Namespace) -> int:
+    if args.setup_command == "codex":
+        report = setup_codex(
+            repo_root=args.repo_root,
+            home=args.home,
+            toolsets=[item for item in args.toolsets.split(",") if item.strip()],
+            confirm=args.confirm,
+            repair=args.repair,
+        )
+    elif args.setup_command == "status":
+        report = inspect_codex_integration(repo_root=args.repo_root)
+    elif args.setup_command == "remove":
+        report = remove_codex(confirm=args.confirm)
+    else:
+        raise ValueError(f"Unknown setup command: {args.setup_command}")
     _print_report(report, as_json=args.json)
     return 0 if report["status"] in ("ok", "not_configured") else 1
 

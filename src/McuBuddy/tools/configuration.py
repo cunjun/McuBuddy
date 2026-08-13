@@ -10,6 +10,24 @@ from ..device_patch_manager import list_supported_targets as _list_supported_tar
 from ..device_patch_manager import resolve_device_patch as _resolve_device_patch
 from ..session import SessionState, create_probe_backend
 from ..security_guards import ensure_file_allowed, runtime_config_for
+from ..tool_safety import DEFAULT_TOOL_NAMES
+
+
+def describe_tool_surface(session: SessionState) -> dict:
+    selected = sorted(session.config.server.toolsets)
+    probe_enabled = "probe" in selected
+    return {
+        "profile": session.config.server.tool_profile,
+        "default_tool_count": len(DEFAULT_TOOL_NAMES),
+        "selected_toolsets": selected,
+        "probe_debug_tools_enabled": probe_enabled,
+        "restart_required": not probe_enabled,
+        "debug_tool_hint": (
+            "Probe debugging tools are enabled for this server process."
+            if probe_enabled
+            else "Set MCUBUDDY_TOOLSETS=probe before starting McuBuddy, then restart the MCP client to enable breakpoints, run control, stepping, symbols, and locals."
+        ),
+    }
 
 
 def get_runtime_config(session: SessionState) -> dict:
@@ -17,6 +35,7 @@ def get_runtime_config(session: SessionState) -> dict:
         "status": "ok",
         "summary": "Loaded current McuBuddy runtime configuration.",
         "config": session.config.model_dump(),
+        "tool_surface": describe_tool_surface(session),
     }
 
 

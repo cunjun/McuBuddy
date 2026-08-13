@@ -23,6 +23,34 @@ def test_help_lists_management_commands(capsys) -> None:
     assert "skill" in output
     assert "packs" in output
     assert "home" in output
+    assert "setup" in output
+
+
+def test_setup_codex_dispatches_active_registration(monkeypatch, capsys) -> None:
+    captured = {}
+
+    def fake_setup(**kwargs):
+        captured.update(kwargs)
+        return {"status": "ok", "summary": "configured", "restart_required": True}
+
+    monkeypatch.setattr(cli, "setup_codex", fake_setup)
+
+    assert cli.main(["setup", "codex", "--toolsets", "probe,diagnose", "--confirm", "--json"]) == 0
+
+    assert captured["toolsets"] == ["probe", "diagnose"]
+    assert captured["confirm"] is True
+    assert json.loads(capsys.readouterr().out)["restart_required"] is True
+
+
+def test_setup_status_is_read_only(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "inspect_codex_integration",
+        lambda **kwargs: {"status": "ok", "summary": "registered"},
+    )
+
+    assert cli.main(["setup", "status", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
 
 
 def test_serve_uses_stdio_transport(monkeypatch) -> None:

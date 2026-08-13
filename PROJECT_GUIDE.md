@@ -2,7 +2,7 @@
 
 **English** | [中文](PROJECT_GUIDE_zh.md)
 
-> Project version: 0.6.0
+> Project version: 0.6.1
 >
 > This is the English system-level guide to McuBuddy. When features, the CLI,
 > MCP tools, architecture, or the Skill change, review and update this file and
@@ -508,6 +508,32 @@ One McuBuddy server session is one hardware-debug channel. Await reset, halt, re
 ### Windows MCP Configuration
 
 Use generic absolute paths and adjust them to the local checkout. Do not copy another user's home or workspace path.
+
+## Persistent Codex setup
+
+An installed release includes the mcubuddy Skill, so normal users do not need a Git checkout:
+
+```powershell
+uv tool install McuBuddy
+McuBuddy setup codex --confirm --json
+```
+
+Developers can run the same setup command from a checkout virtual environment:
+
+```powershell
+& 'C:\path\to\McuBuddy\.venv\Scripts\McuBuddy.exe' setup codex --confirm --json
+```
+
+This installs the bundled Skill and persistently registers the MCP server through `codex mcp add`, with
+`probe,diagnose` selected by default. Inspect or repair the integration with:
+
+```powershell
+& 'C:\path\to\McuBuddy\.venv\Scripts\McuBuddy.exe' setup status --json
+& 'C:\path\to\McuBuddy\.venv\Scripts\McuBuddy.exe' setup codex --repair --confirm --json
+```
+
+Restart Codex after setup or repair. Registration persists across restarts, but an already-running
+task cannot dynamically receive a newly registered MCP tool surface.
 
 ## Direct virtual-environment launch
 

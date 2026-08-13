@@ -7,12 +7,12 @@
     "url": "https://github.com/cunjun/McuBuddy",
     "source": "github"
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "McuBuddy",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "transport": {
         "type": "stdio"
       }

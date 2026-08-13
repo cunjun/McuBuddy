@@ -5,6 +5,24 @@ from ...tool_safety import require_tool_confirmation
 from .breakpoint_lifecycle import temporary_breakpoint
 
 
+def _navigation_outcome(result: dict, target_addr: int) -> tuple[str, bool]:
+    stop_reason = result.get("stop_reason")
+    pc_value = result.get("pc")
+    reached = (
+        pc_value is not None
+        and (int(pc_value, 16) & ~1) == (target_addr & ~1)
+        and stop_reason != "timeout"
+        and result.get("status") != "error"
+    )
+    if reached:
+        return "ok", True
+    if result.get("status") == "error":
+        return "error", False
+    if stop_reason == "timeout":
+        return "timeout", False
+    return "stopped", False
+
+
 def addr_to_source(session: SessionState, address: int) -> dict:
     if not session.services.elf.is_loaded:
         return {"status": "error", "summary": "ELF not loaded. Load an ELF file first."}
@@ -41,15 +59,25 @@ def run_to_source(
             timeout_seconds=timeout_seconds, poll_interval_seconds=0.05
         )
     new_pc = int(result.get("pc", hex(target_addr)), 16)
+    status, target_reached = _navigation_outcome(result, target_addr)
     src = session.services.elf.addr_to_source(new_pc)
     sym = session.services.elf.resolve_address(new_pc)["symbol"]
     return {
-        "status": "ok",
-        "summary": f"Ran to {file}:{line}.",
+        "status": status,
+        "summary": (
+            f"Ran to {file}:{line}."
+            if target_reached
+            else (
+                f"Did not reach {file}:{line} before timeout."
+                if status == "timeout"
+                else f"Target stopped before reaching {file}:{line}."
+            )
+        ),
         "pc": hex(new_pc),
         "source": f"{src['file']}:{src['line']}" if src["file"] else None,
         "symbol": sym,
         "stop_reason": result.get("stop_reason"),
+        "target_reached": target_reached,
     }
 
 
@@ -74,6 +102,7 @@ def run_to_function(
             )
 
         new_pc = int(result.get("pc", hex(addr)), 16)
+        status, target_reached = _navigation_outcome(result, addr)
         if session.services.elf.is_loaded:
             src = session.services.elf.addr_to_source(new_pc)
             sym = session.services.elf.resolve_address(new_pc).get("symbol")
@@ -81,12 +110,21 @@ def run_to_function(
             src = {"file": None, "line": None}
             sym = None
         return {
-            "status": "ok",
-            "summary": f"Ran to function '{name}' at {hex(new_pc)}.",
+            "status": status,
+            "summary": (
+                f"Ran to function '{name}' at {hex(new_pc)}."
+                if target_reached
+                else (
+                    f"Did not reach function '{name}' before timeout; stopped at {hex(new_pc)}."
+                    if status == "timeout"
+                    else f"Target stopped at {hex(new_pc)} before reaching function '{name}'."
+                )
+            ),
             "function": name,
             "address": hex(addr),
             "pc": hex(new_pc),
             "stop_reason": result.get("stop_reason"),
+            "target_reached": target_reached,
             "symbol": sym,
             "source": f"{src['file']}:{src['line']}" if src["file"] else None,
         }

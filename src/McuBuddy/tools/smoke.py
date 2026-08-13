@@ -7,7 +7,7 @@ from typing import Any
 
 from ..result import make_result, safety_info
 from ..session import SessionState
-from .configuration import configure_elf, configure_probe, get_target_info
+from .configuration import configure_elf, configure_probe, describe_tool_surface, get_target_info
 from .probe import connect_probe, halt_target, list_connected_probes, read_stopped_context
 
 
@@ -59,6 +59,7 @@ def doctor(session: SessionState) -> dict:
     evidence.append({"kind": "configuration", "result": session.config.model_dump()})
 
     status = "ok" if not warnings else "warning"
+    tool_surface = describe_tool_surface(session)
     return make_result(
         status=status,
         summary=_doctor_summary(warnings),
@@ -69,7 +70,11 @@ def doctor(session: SessionState) -> dict:
             "Checks Python runtime, package availability, probe discovery, target metadata, and current config.",
             "Does not connect to the target, halt, reset, write memory, or flash.",
         ),
-        payload={"warnings": warnings, "config": session.config.model_dump()},
+        payload={
+            "warnings": warnings,
+            "config": session.config.model_dump(),
+            "tool_surface": tool_surface,
+        },
     )
 
 

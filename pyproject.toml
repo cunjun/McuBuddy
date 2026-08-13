@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "McuBuddy"
-version = "0.6.0"
+version = "0.6.1"
 description = "AI-native debugging and observability for embedded boards"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -73,6 +73,9 @@ McuBuddy = "McuBuddy.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/McuBuddy"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"skills/mcubuddy" = "McuBuddy/resources/mcubuddy_skill"
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]
