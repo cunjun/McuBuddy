@@ -181,6 +181,184 @@ def remove_codex(
     }
 
 
+def inspect_claude_integration(
+    *,
+    repo_root: str | Path | None = None,
+    runner: CommandRunner | None = None,
+    claude_command: str | None = None,
+) -> dict[str, Any]:
+    root = _resolve_repo_root(repo_root)
+    executable = _resolve_mcubuddy_executable(root)
+    skill_source, skill_source_kind = _resolve_skill_source(root)
+    claude = claude_command or shutil.which("claude") or shutil.which("claude.cmd")
+    if claude is None:
+        return {
+            "status": "warning",
+            "summary": "Claude Code CLI was not found; McuBuddy MCP registration could not be checked.",
+            "registered": False,
+            "repo_root": str(root) if root is not None else None,
+            "executable": str(executable) if executable is not None else None,
+            "skill_source": str(skill_source) if skill_source is not None else None,
+            "skill_source_kind": skill_source_kind,
+        }
+
+    result = (runner or _run_command)([claude, "mcp", "get", "mcubuddy"])
+    registered = result["returncode"] == 0
+    return {
+        "status": "ok" if registered else "not_configured",
+        "summary": (
+            "McuBuddy MCP is registered with Claude Code."
+            if registered
+            else "McuBuddy MCP is not registered with Claude Code."
+        ),
+        "registered": registered,
+        "repo_root": str(root) if root is not None else None,
+        "executable": str(executable) if executable is not None else None,
+        "skill_source": str(skill_source) if skill_source is not None else None,
+        "skill_source_kind": skill_source_kind,
+        "claude_command": claude,
+        "details": result["stdout"] or result["stderr"],
+    }
+
+
+def setup_claude(
+    *,
+    repo_root: str | Path | None = None,
+    home: str | Path | None = None,
+    toolsets: Sequence[str] = DEFAULT_CODEX_TOOLSETS,
+    confirm: bool = False,
+    repair: bool = False,
+    runner: CommandRunner | None = None,
+    claude_command: str | None = None,
+) -> dict[str, Any]:
+    command_runner = runner or _run_command
+    current = inspect_claude_integration(
+        repo_root=repo_root,
+        runner=command_runner,
+        claude_command=claude_command,
+    )
+    if current["status"] == "warning":
+        return current
+    if not confirm:
+        return {
+            **current,
+            "status": "needs_confirmation",
+            "summary": "Confirm installing the McuBuddy Claude Code skill and user MCP registration.",
+        }
+
+    root = Path(current["repo_root"]) if current.get("repo_root") else None
+    executable = Path(current["executable"]) if current.get("executable") else None
+    skill_source = Path(current["skill_source"]) if current.get("skill_source") else None
+    if executable is None or not executable.is_file() or skill_source is None:
+        return {
+            "status": "error",
+            "summary": "A usable McuBuddy executable and bundled Skill are required for Claude Code setup.",
+            "integration": current,
+        }
+
+    normalized_toolsets = _normalize_toolsets(toolsets)
+    claude = current["claude_command"]
+    actions: list[dict[str, Any]] = []
+    if current["registered"] and repair:
+        removal = command_runner(
+            [claude, "mcp", "remove", "--scope", "user", "mcubuddy"]
+        )
+        actions.append({"action": "remove-mcp", **removal})
+        if removal["returncode"] != 0:
+            return _setup_error("Could not remove the existing McuBuddy MCP registration.", actions)
+
+    if not current["registered"] or repair:
+        addition = command_runner(
+            [
+                claude,
+                "mcp",
+                "add",
+                "--scope",
+                "user",
+                "--env",
+                f"MCUBUDDY_TOOLSETS={','.join(normalized_toolsets)}",
+                "mcubuddy",
+                "--",
+                str(executable),
+                "serve",
+            ]
+        )
+        actions.append({"action": "add-mcp", **addition})
+        if addition["returncode"] != 0:
+            return _setup_error("Could not register the McuBuddy MCP server.", actions)
+
+    skill = install_skill(
+        target="claude",
+        home=home,
+        source=skill_source,
+        force=True,
+    )
+    skill_action = {key: value for key, value in skill.items() if key != "next_steps"}
+    actions.append({"action": "install-skill", **skill_action})
+    if skill["status"] != "ok":
+        return _setup_error("MCP registration succeeded, but Skill installation failed.", actions)
+
+    verified = inspect_claude_integration(
+        repo_root=root,
+        runner=command_runner,
+        claude_command=claude,
+    )
+    if not verified["registered"]:
+        return _setup_error(
+            "Claude Code did not report the McuBuddy MCP registration after setup.", actions
+        )
+    return {
+        "status": "ok",
+        "summary": "Configured persistent McuBuddy integration for Claude Code.",
+        "registered": True,
+        "repo_root": str(root) if root is not None else None,
+        "executable": str(executable),
+        "skill_source": str(skill_source),
+        "skill_source_kind": current["skill_source_kind"],
+        "toolsets": normalized_toolsets,
+        "actions": actions,
+        "restart_required": True,
+        "next_steps": [
+            "Restart Claude Code so new sessions load the McuBuddy MCP tool surface.",
+            "After restart, requests that name McuBuddy should use its MCP tools directly.",
+        ],
+    }
+
+
+def remove_claude(
+    *,
+    confirm: bool = False,
+    runner: CommandRunner | None = None,
+    claude_command: str | None = None,
+) -> dict[str, Any]:
+    command_runner = runner or _run_command
+    current = inspect_claude_integration(
+        runner=command_runner,
+        claude_command=claude_command,
+    )
+    if not current.get("registered"):
+        return {**current, "status": "ok", "summary": "McuBuddy MCP was not registered."}
+    if not confirm:
+        return {
+            **current,
+            "status": "needs_confirmation",
+            "summary": "Confirm removing the user McuBuddy MCP registration from Claude Code.",
+        }
+    result = command_runner(
+        [current["claude_command"], "mcp", "remove", "--scope", "user", "mcubuddy"]
+    )
+    return {
+        "status": "ok" if result["returncode"] == 0 else "error",
+        "summary": (
+            "Removed the McuBuddy MCP registration from Claude Code."
+            if result["returncode"] == 0
+            else "Could not remove the McuBuddy MCP registration from Claude Code."
+        ),
+        "result": result,
+        "restart_required": result["returncode"] == 0,
+    }
+
+
 def _resolve_repo_root(repo_root: str | Path | None) -> Path | None:
     if repo_root is not None:
         return Path(repo_root).expanduser().resolve()

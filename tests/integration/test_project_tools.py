@@ -35,6 +35,20 @@ def test_discover_keil_projects_reports_targets_and_outputs(tmp_path: Path) -> N
     assert Path(project["project_path"]).is_absolute()
 
 
+def test_discover_keil_projects_searches_all_descendant_directories(
+    tmp_path: Path,
+) -> None:
+    project_dir = tmp_path.joinpath(*[f"level-{index}" for index in range(8)])
+    project_dir.mkdir(parents=True)
+    project = project_dir / "DeepProject.uvprojx"
+    project.write_text("<Project><TargetName>Debug</TargetName></Project>", encoding="utf-8")
+
+    result = discover_keil_projects(str(tmp_path))
+
+    assert result["status"] == "ok"
+    assert [item["project_path"] for item in result["projects"]] == [str(project)]
+
+
 def test_configure_keil_project_sets_build_and_elf_from_discovery(tmp_path: Path) -> None:
     project_dir = tmp_path / "MDK-ARM"
     objects_dir = project_dir / "Objects"

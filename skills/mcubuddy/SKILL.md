@@ -1,6 +1,6 @@
 ---
 name: mcubuddy
-description: Use when debugging MCU firmware or boards with McuBuddy, including probe, boot, HardFault, peripheral, register, memory, ELF/SVD, RTOS, RTT/UART, Keil, GDB, pyOCD, J-Link, ST-Link, or CMSIS-DAP work.
+description: Use when an MCU task needs runtime evidence, including Keil online debugging, breakpoints, stepping, variables, probe, boot, HardFault, peripherals, ELF/SVD, RTOS, logs, GDB, pyOCD, J-Link, ST-Link, or CMSIS-DAP. Trigger proactively; the user need not name McuBuddy.
 ---
 
 # mcubuddy
@@ -11,17 +11,31 @@ Prefer reads, separate evidence from hypotheses, and verify changes. Start in `c
 
 ## Local McuBuddy Discovery
 
-With MCP tools available, never ask for the checkout. Otherwise use `McuBuddy home show --json`;
-validate a missing checkout, then after confirmation run
-`McuBuddy home set <checkout> --confirm --json`. Never embed local paths in docs.
-Never write a local checkout path into `SKILL.md` or repository documentation.
+With MCP available, never ask for a checkout. Otherwise use `McuBuddy home show --json`; validate
+before confirmed `McuBuddy home set` changes. Never embed local paths in Skill or repository docs.
+Never write a local checkout path into `SKILL.md`.
 
 ## Codex MCP Recovery
 
-If the user names McuBuddy but its MCP tools are absent, do not stop. Run
+If the task needs McuBuddy but its MCP tools are absent, do not stop. Run
 `McuBuddy setup status --json`, then if needed
 `McuBuddy setup codex --repair --confirm --json`. Explain that registration persists but Codex must
 reload. After reload, use MCP directly unless startup fails.
+
+## Proactive Runtime Debugging
+
+Do not wait for the user to name McuBuddy. When source inspection cannot prove runtime behavior and
+the AI needs Keil online debugging, a breakpoint, stepping, or variable values, select McuBuddy.
+Use the matching Keil AXF/ELF and the probe toolset to:
+
+- call `set_breakpoint(...)` with the probe toolset, resume, and verify the stop;
+- call `read_symbol_value(...)` with the probe toolset for global and static variables;
+- call `get_locals()` with the probe toolset for local variables and function parameters;
+- single-step with the probe toolset and compare runtime values before and after.
+
+Do not require access to Keil Watch windows. Keil may build the AXF, but it must release a probe
+before McuBuddy connects to that same probe. Treat optimized-out or out-of-scope values as missing
+DWARF/runtime evidence, not as absence of the debugging capability.
 
 ## Project Reference
 
@@ -30,14 +44,16 @@ Use `PROJECT_GUIDE.md` for architecture, `docs/tool-reference.md` for signatures
 
 ## Target Project Memory
 
-Use the confirmed firmware root, never the Skill location; never write another firmware project's memory into the McuBuddy repository. Call
-`inspect_project_memory(...)` before `get_runtime_config()`. Verify remembered hardware; write only
-after confirming root and content.
+Use firmware root; never write another firmware project's memory into the McuBuddy repository.
+Call `inspect_project_memory(...)` before `get_runtime_config()`; search all descendant directories
+for `.uvprojx` and `.uvproj`; select. Missing: call `write_project_memory(...)` to
+`.mcubuddy/project-memory.md`;
+reuse it on later debugging sessions.
 
 ## Known Project Resume
 
-Reuse memory and config. Do not run `first_contact()` except for setup, changed hardware, missing
-config, recovery, or requested preflight; use `doctor()` there too.
+Reuse memory/config. Do not run `first_contact()` except for setup, hardware/config change, recovery,
+or requested preflight; use `doctor()` there too.
 
 ## Default Flow
 
@@ -54,34 +70,24 @@ For a board problem without requested commands:
 
 ## Profile Boundary
 
-- Start with 19 defaults. Enable needed `probe`, `diagnose`, `build_flash`, `rtos`, `logs`, or
-  `experimental` toolsets before startup.
-- No aggregate profile; enable only required startup toolsets.
-- Inspect hidden metadata with `list_tool_safety(include_hidden=true)`; never change profiles live.
+- Start with 19 defaults; enable only needed startup toolsets. Profiles cannot change live.
+- Inspect hidden metadata with `list_tool_safety(include_hidden=true)`.
 
 ## Symptom Routing
 
-| Symptom | Start With |
-| --- | --- |
-| Board will not boot | Diagnose toolset: `collect_startup_evidence(...)`, then crash evidence if fault state is present |
-| HardFault or crash | Diagnose and probe toolsets: `collect_crash_evidence(...)`, then `backtrace()` |
-| UART/SPI/I2C/GPIO silent | Diagnose and probe toolsets: `svd_load(...)`, `collect_peripheral_evidence(...)`, `svd_read_peripheral(...)` |
-| Interrupt/memory/stack issue | Matching crash, peripheral, stack, symbol, or RTOS evidence |
-| FreeRTOS stall | RTOS toolset: `collect_rtos_evidence(...)`, then task context when a task is named |
-| Clock issue | RCC/clock SVD evidence |
-| Need path proof | Probe toolset: use `run_to_function(...)` or `source_step()` |
-| Actuator command ACKed but no motion/output | Prove firmware, bus, peripheral, enable/direction, then physical output |
+- Boot/crash: diagnose and probe evidence, then stack and symbols.
+- Silent peripheral: diagnose and probe SVD evidence.
+- RTOS stall: RTOS task evidence; path proof: probe run-to or source stepping.
+- No physical output: prove firmware, bus, peripheral, enable, then output.
 
 ## Ordering and Safety
 
-- Await stateful calls; use separate sessions for independent boards. Cancellation may not stop
-  an in-progress probe SDK call.
+- Await stateful calls; use separate sessions per board.
 - Confirm target, scope, firmware, intent, and recovery before writes or flash.
-- For flash: collect evidence, build, flash, compare ELF to flash, reset/halt, and re-check.
+- For flash: collect, build, flash, compare ELF/Flash, reset/halt, re-check.
 - RTT memory scanning is bounded by `security.max_rtt_scan_size` or
   `MCUBUDDY_MAX_RTT_SCAN_SIZE`; do not bypass that guard.
-- With the logs toolset, use low-energy `uart_send_with_cleanup(...)` calls with paired stop commands.
-- A `partial` finish is unconfirmed safety evidence; report each failed cleanup.
+- With logs, pair low-energy sends with cleanup. Report failed cleanup and `partial` finishes.
 
 ## Reporting Template
 

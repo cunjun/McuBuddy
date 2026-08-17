@@ -229,11 +229,14 @@ read_stopped_context()
 Skill 是可选的工作流增强，不是硬件调试的前置条件。McuBuddy MCP 服务正确安装和配置后，
 即使不安装 Skill，也可以使用完整的硬件调试能力。
 
-正式安装包已内置 Skill，普通用户无需克隆 Git 仓库即可完成 Codex 持久注册：
+正式安装包已内置 Skill，普通用户无需克隆 Git 仓库即可完成 Codex 或 Claude Code 持久注册：
 
 ```powershell
 uv tool install McuBuddy
 McuBuddy setup codex --confirm --json
+McuBuddy setup claude --confirm --json
+McuBuddy setup status --target claude --json
+McuBuddy setup claude --repair --confirm --json
 ```
 
 安装到 Codex：

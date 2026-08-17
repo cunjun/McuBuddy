@@ -39,7 +39,7 @@ def register_runtime_tools(registrar: SessionToolRegistrar, session: SessionStat
     async def inspect_project_memory(
         target_root: str,
         current_root: str | None = None,
-        max_depth: int = 6,
+        max_depth: int | None = None,
     ) -> dict:
         """Read target-project memory or prepare a read-only onboarding proposal."""
         return _inspect_project_memory(
@@ -184,7 +184,10 @@ def register_runtime_tools(registrar: SessionToolRegistrar, session: SessionStat
         )
 
     @registrar.tool()
-    async def discover_keil_projects(root: str, max_depth: int = 6) -> dict:
+    async def discover_keil_projects(
+        root: str,
+        max_depth: int | None = None,
+    ) -> dict:
         """Find Keil project files, targets, and likely AXF/ELF outputs under a directory."""
         return _discover_keil_projects(root=root, max_depth=max_depth)
 

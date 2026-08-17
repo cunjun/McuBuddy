@@ -53,6 +53,46 @@ def test_setup_status_is_read_only(monkeypatch, capsys) -> None:
     assert json.loads(capsys.readouterr().out)["status"] == "ok"
 
 
+def test_setup_claude_dispatches_user_registration(monkeypatch, capsys) -> None:
+    captured = {}
+
+    def fake_setup(**kwargs):
+        captured.update(kwargs)
+        return {"status": "ok", "summary": "configured", "restart_required": True}
+
+    monkeypatch.setattr(cli, "setup_claude", fake_setup)
+
+    assert cli.main(["setup", "claude", "--confirm", "--json"]) == 0
+    assert captured["toolsets"] == ["probe", "diagnose"]
+    assert captured["confirm"] is True
+    assert json.loads(capsys.readouterr().out)["restart_required"] is True
+
+
+def test_setup_status_can_inspect_claude(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "inspect_claude_integration",
+        lambda **kwargs: {"status": "ok", "summary": "registered"},
+    )
+
+    assert cli.main(["setup", "status", "--target", "claude", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
+
+
+def test_setup_remove_can_target_claude(monkeypatch, capsys) -> None:
+    captured = {}
+
+    def fake_remove(**kwargs):
+        captured.update(kwargs)
+        return {"status": "ok", "summary": "removed"}
+
+    monkeypatch.setattr(cli, "remove_claude", fake_remove)
+
+    assert cli.main(["setup", "remove", "--target", "claude", "--confirm", "--json"]) == 0
+    assert captured["confirm"] is True
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
+
+
 def test_serve_uses_stdio_transport(monkeypatch) -> None:
     calls = []
 

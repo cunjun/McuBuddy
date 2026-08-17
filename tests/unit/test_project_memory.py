@@ -35,6 +35,23 @@ def test_inspect_prefers_explicit_target_over_current_workspace(tmp_path: Path) 
     assert not (firmware_root / ".mcubuddy").exists()
 
 
+def test_inspect_discovers_keil_project_below_six_directory_levels(
+    tmp_path: Path,
+) -> None:
+    project_dir = tmp_path.joinpath(*[f"level-{index}" for index in range(8)])
+    project_dir.mkdir(parents=True)
+    project = project_dir / "DeepProject.uvprojx"
+    project.write_text(
+        "<Project><TargetName>Debug</TargetName><Device>STM32F429IGTx</Device></Project>",
+        encoding="utf-8",
+    )
+
+    result = inspect_project_memory(str(tmp_path))
+
+    discovered = result["discovery"]["keil_projects"]
+    assert [item["project_path"] for item in discovered] == [str(project)]
+
+
 def test_inspect_reads_existing_memory_and_marks_volatile_values_last_known(
     tmp_path: Path,
 ) -> None:

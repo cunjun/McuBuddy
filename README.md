@@ -227,12 +227,15 @@ The repository includes `skills/mcubuddy`, which guides Codex and Claude Code to
 The Skill is an optional workflow enhancement, not a prerequisite for hardware debugging. A correctly
 installed and configured local McuBuddy MCP server remains fully usable without it.
 
-Installed releases bundle the Skill. Register the persistent Codex integration without cloning the
+Installed releases bundle the Skill. Register a persistent integration without cloning the
 repository:
 
 ```powershell
 uv tool install McuBuddy
 McuBuddy setup codex --confirm --json
+McuBuddy setup claude --confirm --json
+McuBuddy setup status --target claude --json
+McuBuddy setup claude --repair --confirm --json
 ```
 
 Install for Codex:

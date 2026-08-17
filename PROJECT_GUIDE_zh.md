@@ -1081,6 +1081,17 @@ first_contact()
 
 ### 18.2 Windows MCP 客户端配置
 
+正式安装包可以为 Claude Code 完成用户级 MCP 注册并安装内置 Skill：
+
+```powershell
+McuBuddy setup claude --confirm --json
+McuBuddy setup status --target claude --json
+McuBuddy setup claude --repair --confirm --json
+```
+
+该流程使用 `claude mcp add --scope user`，默认启用 `probe,diagnose`，并把 Skill 安装到
+`.claude/skills/mcubuddy`。安装或修复后需要重启 Claude Code。
+
 Windows 源码环境应使用虚拟环境中的绝对可执行路径，并显式设置工作目录。例如：
 
 ```json

@@ -34,7 +34,7 @@ def inspect_project_memory(
     target_root: str,
     *,
     current_root: str | None = None,
-    max_depth: int = 6,
+    max_depth: int | None = None,
 ) -> dict:
     """Inspect target-project memory and Keil metadata without changing files."""
     resolved = _resolve_existing_directory(target_root)

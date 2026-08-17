@@ -535,6 +535,20 @@ This installs the bundled Skill and persistently registers the MCP server throug
 Restart Codex after setup or repair. Registration persists across restarts, but an already-running
 task cannot dynamically receive a newly registered MCP tool surface.
 
+## Persistent Claude Code setup
+
+Use the same installed runtime to register a user-scoped Claude Code MCP server and install the
+Skill into Claude's local skills directory:
+
+```powershell
+McuBuddy setup claude --confirm --json
+McuBuddy setup status --target claude --json
+McuBuddy setup claude --repair --confirm --json
+```
+
+The setup command invokes `claude mcp add --scope user`, selects `probe,diagnose` by default, and
+installs the bundled Skill under `.claude/skills/mcubuddy`. Restart Claude Code after setup or repair.
+
 ## Direct virtual-environment launch
 
 ```json

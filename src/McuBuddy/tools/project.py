@@ -21,7 +21,7 @@ _XML_FIELDS = {
 }
 
 
-def discover_keil_projects(root: str, max_depth: int = 6) -> dict:
+def discover_keil_projects(root: str, max_depth: int | None = None) -> dict:
     """Discover Keil MDK projects and likely firmware outputs under a directory."""
     root_path = Path(root).expanduser().resolve()
     if not root_path.exists():
@@ -220,7 +220,11 @@ def _resolve_project_path(project_dir: Path, value: str) -> Path:
     return project_dir / path
 
 
-def _iter_files(root: Path, patterns: tuple[str, ...], max_depth: int) -> list[Path]:
+def _iter_files(
+    root: Path,
+    patterns: tuple[str, ...],
+    max_depth: int | None,
+) -> list[Path]:
     results: list[Path] = []
     for pattern in patterns:
         for path in root.rglob(pattern):
@@ -228,7 +232,7 @@ def _iter_files(root: Path, patterns: tuple[str, ...], max_depth: int) -> list[P
                 depth = len(path.relative_to(root).parts) - 1
             except ValueError:
                 continue
-            if depth <= max_depth:
+            if max_depth is None or depth <= max_depth:
                 results.append(path)
     return sorted(set(results))
 

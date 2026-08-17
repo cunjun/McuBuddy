@@ -59,12 +59,43 @@ def test_skill_recovers_missing_codex_mcp_registration_proactively() -> None:
     assert "do not stop" in skill
 
 
+def test_skill_routes_runtime_keil_debugging_to_mcubuddy_without_user_prompt() -> None:
+    skill = SKILL_PATH.read_text(encoding="utf-8")
+
+    assert "Do not wait for the user to name McuBuddy" in skill
+    assert "Keil online debugging" in skill
+    assert "set_breakpoint(...)" in skill
+    assert "read_symbol_value(...)" in skill
+    assert "get_locals()" in skill
+    assert "global and static variables" in skill
+    assert "local variables and function parameters" in skill
+
+
+def test_skill_persists_first_debug_discovery_in_the_firmware_project() -> None:
+    skill = SKILL_PATH.read_text(encoding="utf-8")
+    normalized = skill.lower()
+
+    assert "search all descendant directories" in normalized
+    assert "`.uvprojx` and `.uvproj`" in skill
+    assert "`.mcubuddy/project-memory.md`" in skill
+    assert "write_project_memory(...)" in skill
+    assert "reuse it on later debugging sessions" in skill
+
+
 def test_project_guide_documents_persistent_codex_setup() -> None:
     guide = (ROOT / "PROJECT_GUIDE.md").read_text(encoding="utf-8")
 
     assert "setup codex --confirm --json" in guide
     assert "setup codex --repair --confirm --json" in guide
     assert "Registration persists across restarts" in guide
+
+
+def test_readmes_and_guides_document_persistent_claude_code_setup() -> None:
+    for relative_path in ["README.md", "README_zh.md", "PROJECT_GUIDE.md", "PROJECT_GUIDE_zh.md"]:
+        text = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "setup claude --confirm --json" in text
+        assert "setup status --target claude --json" in text
+        assert "setup claude --repair --confirm --json" in text
 
 
 def test_documented_core_tools_match_code_allowlist() -> None:
